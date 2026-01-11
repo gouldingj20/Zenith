@@ -1,0 +1,153 @@
+{
+  "__meta__": {
+    "name": "Zenith",
+    "version": "1.0.0",
+    "description": "Human-first web language"
+  },
+
+  /* ======================
+     PAGE META
+  ====================== */
+
+  "zenith": { "type": "meta" },
+  "lang":   { "type": "meta" },
+  "page":   { "type": "meta" },
+
+  /* ======================
+     ROOT SECTIONS
+  ====================== */
+
+  "header": { "tag": "header", "type": "section" },
+  "hero":   { "tag": "section", "type": "section", "id": "hero" },
+  "main":   { "tag": "main",    "type": "section" },
+  "footer": { "tag": "footer",  "type": "section" },
+
+  "section": { "tag": "section", "type": "container", "title": true },
+
+  /* ======================
+     LAYOUT SYSTEM
+  ====================== */
+
+  "stack": {
+    "tag": "div",
+    "type": "layout",
+    "style": "display:flex;flex-direction:column;gap:40px"
+  },
+
+  "grid": {
+    "tag": "div",
+    "type": "layout",
+    "style": "display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:32px"
+  },
+
+  "column": {
+    "tag": "div",
+    "type": "layout",
+    "style": "display:flex;flex-direction:column;gap:16px"
+  },
+
+  "actions": {
+    "tag": "div",
+    "type": "layout",
+    "style": "display:flex;gap:16px;flex-wrap:wrap"
+  },
+
+  /* ======================
+     CONTENT / TEXT
+  ====================== */
+
+  "title": {
+    "tag": "h1",
+    "type": "text"
+  },
+
+  "subtitle": {
+    "tag": "h2",
+    "type": "text"
+  },
+
+  "text": {
+    "tag": "p",
+    "type": "text"
+  },
+
+  "small": {
+    "tag": "small",
+    "type": "text"
+  },
+
+  "step": {
+    "tag": "p",
+    "type": "text",
+    "style": "font-weight:500"
+  },
+
+  "icon": {
+    "tag": "span",
+    "type": "inline",
+    "style": "font-size:2rem"
+  },
+
+  /* ======================
+     INTERACTION
+  ====================== */
+
+  "button": {
+    "tag": "button",
+    "type": "interactive",
+    "style": "padding:14px 28px;border-radius:999px;border:none;cursor:pointer"
+  },
+
+  "link": {
+    "tag": "a",
+    "type": "interactive"
+  },
+
+  /* ======================
+     MEDIA
+  ====================== */
+
+  "image": {
+    "tag": "img",
+    "type": "media",
+    "selfClosing": true
+  },
+
+  /* ======================
+     COMPONENTS
+  ====================== */
+
+  "card": {
+    "tag": "div",
+    "type": "component",
+    "style": "padding:32px;border-radius:16px;background:white;box-shadow:0 20px 40px rgba(0,0,0,0.06)"
+  },
+
+  "cta": {
+    "tag": "div",
+    "type": "component",
+    "style": "padding:80px 40px;text-align:center;background:linear-gradient(135deg,#111,#333);color:white;border-radius:24px"
+  },
+
+  "feature": {
+    "tag": "div",
+    "type": "component",
+    "style": "padding:24px"
+  },
+
+  "nav": {
+    "tag": "nav",
+    "type": "component",
+    "style": "display:flex;gap:24px;align-items:center"
+  },
+
+  /* ======================
+     UTILITIES
+  ====================== */
+
+  "divider": {
+    "tag": "hr",
+    "type": "utility",
+    "selfClosing": true
+  }
+}
