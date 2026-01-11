@@ -3,94 +3,85 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Zenith Playground – Modern Web Builder</title>
+  <title>Zenith – Simple Web Language Playground</title>
   <style>
     :root {
       --bg: #0f172a;
-      --editor-bg: #1e293b;
       --text: #e2e8f0;
       --accent: #6366f1;
       --accent-hover: #818cf8;
-      --border: #334155;
+      --editor-bg: #1e293b;
     }
-    * { box-sizing:border-box; margin:0; padding:0; }
+    * { margin:0; padding:0; box-sizing:border-box; }
     body {
-      font-family: system-ui, -apple-system, sans-serif;
+      font-family: system-ui, sans-serif;
       background: var(--bg);
       color: var(--text);
       height: 100vh;
-      display: flex;
       overflow: hidden;
     }
-    #editor {
-      flex: 1;
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: rgba(15,23,42,0.85);
+      backdrop-filter: blur(10px);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 1000;
+    }
+    .logo { font-size: 1.6rem; font-weight: bold; }
+    .actions button {
+      margin-left: 1rem;
+      padding: 0.6rem 1.2rem;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .actions button:hover { background: var(--accent-hover); }
+    #preview { height: 100vh; width: 100vw; border: none; }
+    #editor-panel {
+      position: fixed;
+      top: 0;
+      right: -50%;
+      width: 50%;
+      height: 100%;
       background: var(--editor-bg);
-      padding: 2rem 2.5rem;
+      color: var(--text);
+      transition: right 0.4s ease;
+      z-index: 2000;
       display: flex;
       flex-direction: column;
-      box-shadow: 4px 0 20px rgba(0,0,0,0.4);
-      z-index: 2;
+      padding: 5rem 2rem 2rem;
+      box-shadow: -10px 0 30px rgba(0,0,0,0.6);
     }
-    header {
-      margin-bottom: 1.5rem;
-    }
-    h1 {
-      font-size: 2.2rem;
-      font-weight: 700;
+    #editor-panel.open { right: 0; }
+    #close-editor {
+      position: absolute;
+      top: 1.5rem;
+      right: 1.5rem;
+      background: transparent;
+      border: none;
       color: white;
-    }
-    .subtitle {
-      color: #94a3b8;
-      font-size: 1.05rem;
-      margin-top: 0.3rem;
+      font-size: 1.8rem;
+      cursor: pointer;
     }
     textarea {
       flex: 1;
       background: #111827;
       color: #e2e8f0;
-      font-family: 'Courier New', monospace;
-      font-size: 15.5px;
-      line-height: 1.55;
-      padding: 1.4rem;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      resize: none;
-      outline: none;
-      box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
-    }
-    .controls {
-      margin-top: 1.5rem;
-      display: flex;
-      gap: 1rem;
-      flex-wrap: wrap;
-    }
-    button {
-      padding: 0.9rem 1.9rem;
-      background: var(--accent);
-      color: white;
-      border: none;
+      font-family: monospace;
+      font-size: 15px;
+      padding: 1.2rem;
+      border: 1px solid #334155;
       border-radius: 8px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      font-size: 1rem;
-    }
-    button:hover {
-      background: var(--accent-hover);
-      transform: translateY(-2px);
-      box-shadow: 0 6px 15px rgba(99,102,241,0.35);
-    }
-    #preview {
-      flex: 1.5;
-      background: #ffffff;
-      overflow: hidden;
-      position: relative;
-      box-shadow: -4px 0 20px rgba(0,0,0,0.3);
-    }
-    iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
+      resize: none;
     }
     .error-message {
       position: absolute;
@@ -98,32 +89,31 @@
       left: 50%;
       transform: translate(-50%, -50%);
       color: #f87171;
-      font-size: 1.3rem;
+      font-size: 1.4rem;
       text-align: center;
+      background: rgba(0,0,0,0.7);
       padding: 2rem;
-      background: rgba(0,0,0,0.6);
       border-radius: 12px;
-      max-width: 80%;
-    }
-
-    /* Mobile */
-    @media (max-width: 768px) {
-      body { flex-direction: column; }
-      #editor, #preview { flex: none; width: 100%; }
-      #preview { height: 45vh; }
-      textarea { height: 45vh; font-size: 14.5px; }
-      h1 { font-size: 1.8rem; }
-      .controls { justify-content: center; }
     }
   </style>
 </head>
 <body>
-  <div id="editor">
-    <header>
-      <h1>Zenith</h1>
-      <div class="subtitle">Write clean, readable code → build modern sites instantly</div>
-    </header>
+  <header>
+    <div class="logo">Zenith</div>
+    <div class="actions">
+      <button onclick="toggleEditor()">Edit Zenith Code</button>
+      <button onclick="downloadHTML()">Download HTML</button>
+      <button onclick="downloadCSS()">Download CSS</button>
+      <button onclick="window.open('https://github.com/gouldingj20/Zenith', '_blank')">About & License</button>
+    </div>
+  </header>
 
+  <iframe id="previewFrame" srcdoc=""></iframe>
+
+  <div id="editor-panel">
+    <button id="close-editor" onclick="toggleEditor()">×</button>
+    <h2 style="margin-bottom:1rem;">Zenith Code Editor</h2>
+    <p style="color:#94a3b8; margin-bottom:1rem;">Start with <code>zen</code> on line 1</p>
     <textarea id="zenInput">
 zen
 @hero
@@ -157,23 +147,23 @@ STACK
 FOOTER
   COPYRIGHT "© 2026 Zenith – Free for creators & learners"
     </textarea>
-
-    <div class="controls">
-      <button onclick="renderPreview()">Refresh Preview</button>
-      <button onclick="downloadHTML()">Download HTML</button>
-      <button onclick="downloadCSS()">Download CSS</button>
-    </div>
   </div>
 
-  <div id="preview">
-    <iframe id="previewFrame"></iframe>
-    <div id="errorOverlay" class="error-message" style="display:none;">
-      Start your code with <strong>zen</strong> on the first line!
-    </div>
+  <div id="errorOverlay" class="error-message" style="display:none;">
+    Start with <strong>zen</strong> on the first line!
   </div>
 
   <script>
+    const editorPanel = document.getElementById('editor-panel');
+    const previewFrame = document.getElementById('previewFrame');
+    const errorOverlay = document.getElementById('errorOverlay');
+
+    function toggleEditor() {
+      editorPanel.classList.toggle('open');
+    }
+
     function zenithToHtml(zenCode) {
+      // Same powerful parser as before – full HTML structure
       let html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -184,10 +174,10 @@ FOOTER
     body { margin:0; font-family:system-ui, sans-serif; background:linear-gradient(to bottom, #f8fafc, #e2e8f0); min-height:100vh; color:#0f172a; }
     .stack { display:flex; flex-direction:column; gap:3rem; padding:6rem 4rem; align-items:center; text-align:center; }
     .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:2.5rem; padding:3rem 2rem; }
-    .card { background:white; border-radius:16px; padding:2.5rem; box-shadow:0 10px 40px rgba(0,0,0,0.12); transition:transform 0.3s ease, box-shadow 0.3s ease; }
-    .card:hover { transform:translateY(-8px); box-shadow:0 20px 50px rgba(0,0,0,0.18); }
-    .btn { display:inline-block; padding:1.1rem 2.8rem; background:#6366f1; color:white; border:none; border-radius:10px; font-weight:600; text-decoration:none; cursor:pointer; transition:all 0.25s ease; font-size:1.05rem; }
-    .btn:hover { background:#818cf8; transform:translateY(-3px); box-shadow:0 10px 25px rgba(99,102,241,0.4); }
+    .card { background:white; border-radius:16px; padding:2.5rem; box-shadow:0 10px 40px rgba(0,0,0,0.12); transition:transform 0.3s ease; }
+    .card:hover { transform:translateY(-8px); }
+    .btn { display:inline-block; padding:1.1rem 2.8rem; background:#6366f1; color:white; border:none; border-radius:10px; font-weight:600; cursor:pointer; transition:all 0.25s ease; }
+    .btn:hover { background:#818cf8; transform:translateY(-3px); }
     nav { background:#0f172a; color:white; padding:1.2rem 4rem; position:sticky; top:0; z-index:1000; backdrop-filter:blur(10px); }
     nav ul { display:flex; gap:3rem; list-style:none; margin:0; padding:0; justify-content:center; flex-wrap:wrap; }
     nav a { color:#e2e8f0; text-decoration:none; font-weight:600; transition:color 0.2s; }
@@ -198,12 +188,7 @@ FOOTER
     h3 { font-size:2.2rem; margin:0 0 1rem; }
     p { max-width:75ch; margin:0 auto; font-size:1.15rem; }
     section { padding:5rem 3rem; }
-    @media (max-width:768px) {
-      .stack, .grid { padding:4rem 1.8rem; }
-      .grid { grid-template-columns:1fr; }
-      nav { padding:1rem 2rem; }
-      h1 { font-size:3rem; }
-    }
+    @media (max-width:768px) { .stack, .grid { padding:4rem 1.8rem; } .grid { grid-template-columns:1fr; } nav ul { gap:1.5rem; } h1 { font-size:3rem; } }
   </style>
 </head>
 <body>`;
@@ -213,61 +198,34 @@ FOOTER
 
       lines.forEach(line => {
         if (line.startsWith('@')) html += '<section>';
-        if (line === 'STACK') {
-          containerStack.push('div');
-          html += '<div class="stack">';
-        }
-        if (line === 'GRID') {
-          containerStack.push('div');
-          html += '<div class="grid">';
-        }
-        if (line === 'CARD') {
-          containerStack.push('div');
-          html += '<div class="card">';
-        }
-        if (line === 'NAV') {
-          containerStack.push('nav');
-          html += '<nav><ul>';
-        }
-        if (line === 'FOOTER') {
-          containerStack.push('footer');
-          html += '<footer>';
-        }
+        if (line === 'STACK') { containerStack.push('div'); html += '<div class="stack">'; }
+        if (line === 'GRID') { containerStack.push('div'); html += '<div class="grid">'; }
+        if (line === 'CARD') { containerStack.push('div'); html += '<div class="card">'; }
+        if (line === 'NAV') { containerStack.push('nav'); html += '<nav><ul>'; }
+        if (line === 'FOOTER') { containerStack.push('footer'); html += '<footer>'; }
         if (line.startsWith('TITLE ')) {
           const parts = line.slice(6).split('/').map(p => p.trim().replace(/"/g,''));
-          const text = parts[0];
-          const weight = parts[1] || 'normal';
-          const color = parts[3] || '#0f172a';
-          const align = parts[4] || 'center';
-          html += `<h1 style="font-weight:${weight}; color:${color}; text-align:${align};">${text}</h1>`;
+          html += `<h1 style="font-weight:${parts[1]||'normal'}; color:${parts[3]||'#0f172a'}; text-align:${parts[4]||'center'};">${parts[0]}</h1>`;
         }
         if (line.startsWith('TEXT ')) {
           const parts = line.slice(5).split('/').map(p => p.trim().replace(/"/g,''));
-          const text = parts[0];
-          const color = parts[3] || '#475569';
-          html += `<p style="color:${color};">${text}</p>`;
+          html += `<p style="color:${parts[3]||'#475569'};">${parts[0]}</p>`;
         }
         if (line.startsWith('BUTTON ')) {
           const parts = line.slice(7).split('/').map(p => p.trim().replace(/"/g,''));
-          const text = parts[0];
           const bg = parts[4] ? `background:${parts[4]};` : 'background:#6366f1;';
-          html += `<a href="#" class="btn" style="${bg}">${text}</a>`;
+          html += `<button class="btn" style="${bg}">${parts[0]}</button>`;
         }
         if (line.startsWith('SUBTITLE ')) {
           html += `<h3>${line.slice(9).trim().replace(/"/g,'')}</h3>`;
         }
         if (line.startsWith('IMAGE ')) {
           const parts = line.slice(6).split('/').map(p => p.trim().replace(/"/g,''));
-          const src = parts[0];
-          const alt = parts[1] || 'Image';
-          const width = parts[2] || '100%';
-          html += `<img src="${src}" alt="${alt}" style="max-width:${width};">`;
+          html += `<img src="${parts[0]}" alt="${parts[1]||'Image'}" style="max-width:${parts[2]||'100%'};">`;
         }
         if (line.startsWith('LINK ')) {
           const parts = line.slice(5).split('/').map(p => p.trim().replace(/"/g,''));
-          const text = parts[0];
-          const href = parts[1] || '#';
-          html += `<li><a href="${href}">${text}</a></li>`;
+          html += `<li><a href="${parts[1]||'#'}">${parts[0]}</a></li>`;
         }
         if (line.startsWith('COPYRIGHT ')) {
           html += `<p>${line.slice(10).trim().replace(/"/g,'')}</p>`;
@@ -284,39 +242,27 @@ FOOTER
       return html;
     }
 
-    function getCSSOnly() {
-      const cssMatch = zenithToHtml('').match(/<style>([\s\S]*?)<\/style>/);
-      return cssMatch ? cssMatch[1].trim() : '';
-    }
-
     function renderPreview() {
       const code = document.getElementById('zenInput').value.trim();
       const lines = code.split('\n').map(l => l.trim()).filter(Boolean);
       const firstLine = lines[0] ? lines[0].toLowerCase() : '';
 
-      const previewFrame = document.getElementById('previewFrame');
-      const errorOverlay = document.getElementById('errorOverlay');
-
       if (!firstLine.startsWith('zen')) {
-        errorOverlay.style.display = 'block';
-        previewFrame.srcdoc = '';
+        document.getElementById('errorOverlay').style.display = 'block';
+        document.getElementById('previewFrame').srcdoc = '';
       } else {
-        errorOverlay.style.display = 'none';
+        document.getElementById('errorOverlay').style.display = 'none';
         const cleanCode = lines.slice(1).join('\n');
-        previewFrame.srcdoc = zenithToHtml(cleanCode);
+        document.getElementById('previewFrame').srcdoc = zenithToHtml(cleanCode);
       }
     }
 
     function downloadHTML() {
       const code = document.getElementById('zenInput').value.trim();
       const lines = code.split('\n').map(l => l.trim()).filter(Boolean);
-      if (!lines[0]?.toLowerCase().startsWith('zen')) {
-        alert("Start with 'zen' on the first line!");
-        return;
-      }
+      if (!lines[0]?.toLowerCase().startsWith('zen')) return alert("Start with 'zen'!");
       const cleanCode = lines.slice(1).join('\n');
-      const fullHtml = zenithToHtml(cleanCode);
-      const blob = new Blob([fullHtml], {type: 'text/html'});
+      const blob = new Blob([zenithToHtml(cleanCode)], {type: 'text/html'});
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -326,11 +272,8 @@ FOOTER
     }
 
     function downloadCSS() {
-      const css = getCSSOnly();
-      if (!css) {
-        alert("No CSS generated yet.");
-        return;
-      }
+      const css = zenithToHtml('').match(/<style>([\s\S]*?)<\/style>/)?.[1]?.trim() || '';
+      if (!css) return alert("No CSS yet.");
       const blob = new Blob([css], {type: 'text/css'});
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -341,7 +284,7 @@ FOOTER
     }
 
     document.getElementById('zenInput').addEventListener('input', renderPreview);
-    renderPreview();
+    renderPreview(); // Initial load
   </script>
 </body>
 </html>
