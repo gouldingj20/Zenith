@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zenith Playground – Simple & Powerful Web Language</title>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      font-family: system-ui, -apple-system, sans-serif;
+      display: flex;
+      background: #f8fafc;
+      color: #1e293b;
+    }
+    #editor {
+      width: 50%;
+      padding: 2rem;
+      background: #f1f5f9;
+      border-right: 1px solid #e2e8f0;
+      overflow-y: auto;
+    }
+    #preview {
+      flex: 1;
+      background: white;
+    }
+    textarea {
+      width: 100%;
+      height: 70vh;
+      font-family: 'Courier New', monospace;
+      font-size: 15px;
+      padding: 1rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      resize: none;
+      background: white;
+      line-height: 1.5;
+    }
+    .controls {
+      margin-top: 1.5rem;
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    button {
+      padding: 0.8rem 1.6rem;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 1rem;
+    }
+    button:hover {
+      background: #2563eb;
+    }
+    h2 {
+      margin: 0 0 1rem 0;
+    }
+    p.intro {
+      margin: 0 0 1.5rem 0;
+      color: #475569;
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="editor">
+    <h2>Zenith Playground</h2>
+    <p class="intro">Write in simple Zenith syntax → see your website live below. Download the full HTML when ready!</p>
+    
+    <textarea id="zenInput">
+@hero
+STACK
+  TITLE "Zenith – Build Fast" / inherit / bold / #111 / center
+  TEXT "One readable line for structure + style. No more HTML/CSS switching." / inherit / normal / #555 / center
+  BUTTON "Try Now" / inherit / bold / white / center / #3b82f6
+
+@main
+STACK
+  TITLE "Features" / inherit / bold / #111 / left
+  TEXT "Powerful enough for real sites."
+
+  GRID
+    CARD
+      SUBTITLE "Readable"
+      TEXT "Human-first syntax."
+    CARD
+    CARD
+      SUBTITLE "Instant"
+      TEXT "Live preview + download."
+    CARD
+    CARD
+      SUBTITLE "Clean"
+      TEXT "Full raw HTML/CSS output."
+    </textarea>
+
+    <div class="controls">
+      <button onclick="renderPreview()">Refresh Preview</button>
+      <button onclick="downloadHTML()">Download Full HTML</button>
+    </div>
+  </div>
+
+  <div id="preview">
+    <iframe id="previewFrame"></iframe>
+  </div>
+
+  <script>
+    // Your Zenith to HTML/CSS transpiler – expand this as your "dictionary" grows!
+    function zenithToHtml(zenCode) {
+      let html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Zenith Website</title>
+  <style>
+    body { margin:0; font-family:system-ui, sans-serif; background:#f9fafb; line-height:1.6; color:#111; }
+    .stack { display:flex; flex-direction:column; gap:2.5rem; padding:5rem 3rem; align-items:center; text-align:center; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:2rem; padding:2rem; }
+    .card { background:white; border-radius:12px; padding:2rem; box-shadow:0 8px 30px rgba(0,0,0,0.1); transition:transform 0.3s; }
+    .card:hover { transform:translateY(-5px); }
+    .btn { display:inline-block; padding:1rem 2.5rem; background:#3b82f6; color:white; border:none; border-radius:8px; font-weight:bold; text-decoration:none; cursor:pointer; transition:background 0.3s; }
+    .btn:hover { background:#2563eb; }
+    h1 { font-size:3.5rem; margin:0; }
+    h3 { font-size:2rem; margin:0 0 1rem; }
+    p { max-width:70ch; margin:0 auto; font-size:1.1rem; }
+    section { padding:4rem 2rem; }
+  </style>
+</head>
+<body>`;
+
+      const lines = zenCode.split('\n').map(l => l.trim()).filter(Boolean);
+      let containerStack = []; // To properly close containers
+
+      lines.forEach(line => {
+        if (line.startsWith('@')) {
+          html += '<section>';
+        }
+        if (line === 'STACK') {
+          containerStack.push('stack');
+          html += '<div class="stack">';
+        }
+        if (line === 'GRID') {
+          containerStack.push('grid');
+          html += '<div class="grid">';
+        }
+        if (line === 'CARD') {
+          containerStack.push('card');
+          html += '<div class="card">';
+        }
+        if (line.startsWith('TITLE ')) {
+          const parts = line.slice(6).split('/').map(p => p.trim().replace(/"/g,''));
+          const text = parts[0];
+          const weight = parts[1] || 'normal';
+          const color = parts[3] || '#111';
+          const align = parts[4] || 'center';
+          html += `<h1 style="font-weight:${weight}; color:${color}; text-align:${align};">${text}</h1>`;
+        }
+        if (line.startsWith('TEXT ')) {
+          const parts = line.slice(5).split('/').map(p => p.trim().replace(/"/g,''));
+          const text = parts[0];
+          const color = parts[3] || '#555';
+          html += `<p style="color:${color};">${text}</p>`;
+        }
+        if (line.startsWith('BUTTON ')) {
+          const parts = line.slice(7).split('/').map(p => p.trim().replace(/"/g,''));
+          const text = parts[0];
+          const bg = parts[4] ? `background:${parts[4]};` : 'background:#3b82f6;';
+          html += `<a href="#" class="btn" style="${bg}">${text}</a>`;
+        }
+        if (line.startsWith('SUBTITLE ')) {
+          const text = line.slice(9).trim().replace(/"/g,'');
+          html += `<h3>${text}</h3>`;
+        }
+        // Add new components here as your dictionary grows!
+        // Example placeholder for future IMAGE:
+        // if (line.startsWith('IMAGE ')) { ... }
+      });
+
+      // Close all open containers properly
+      while (containerStack.length > 0) {
+        html += '</div>';
+        containerStack.pop();
+      }
+      html += '</section></body></html>';
+      return html;
+    }
+
+    function renderPreview() {
+      const code = document.getElementById('zenInput').value;
+      document.getElementById('previewFrame').srcdoc = zenithToHtml(code);
+    }
+
+    function downloadHTML() {
+      const code = document.getElementById('zenInput').value;
+      const fullHtml = zenithToHtml(code);
+      const blob = new Blob([fullHtml], {type: 'text/html'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'my-zenith-site.html';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // Live preview on every change
+    document.getElementById('zenInput').addEventListener('input', renderPreview);
+    renderPreview(); // Start with example
+  </script>
+</body>
+</html>
