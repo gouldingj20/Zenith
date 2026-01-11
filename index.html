@@ -35,7 +35,7 @@
     }
     .logo { font-size: 1.8rem; font-weight: bold; }
     .actions button {
-      margin-left: 1rem;
+      margin-left: 0.8rem;
       padding: 0.7rem 1.4rem;
       background: var(--accent);
       color: white;
@@ -59,19 +59,17 @@
     }
     #editor-overlay {
       position: fixed;
-      top: 0;
-      right: -100%;
-      width: 100%;
-      height: 100%;
+      inset: 0;
       background: var(--editor-bg);
       color: var(--text);
-      transition: right 0.4s ease;
+      transform: translateX(100%);
+      transition: transform 0.4s ease;
       z-index: 2000;
       display: flex;
       flex-direction: column;
       padding: 5rem 1.5rem 1.5rem;
     }
-    #editor-overlay.open { right: 0; }
+    #editor-overlay.open { transform: translateX(0); }
     #close-editor {
       position: absolute;
       top: 1rem;
@@ -79,7 +77,7 @@
       background: transparent;
       border: none;
       color: white;
-      font-size: 2.2rem;
+      font-size: 2.4rem;
       cursor: pointer;
     }
     textarea {
@@ -93,6 +91,7 @@
       border-radius: 10px;
       resize: none;
       outline: none;
+      line-height: 1.5;
     }
     .error-message {
       position: absolute;
@@ -106,9 +105,6 @@
       padding: 2rem;
       border-radius: 12px;
       max-width: 90%;
-    }
-    @media (min-width: 769px) {
-      #editor-overlay { width: 50%; right: -50%; }
     }
   </style>
 </head>
@@ -125,14 +121,14 @@
   <div id="preview-container">
     <iframe id="previewFrame"></iframe>
     <div id="errorOverlay" class="error-message" style="display:none;">
-      Start your Zenith code with <strong>zen</strong> on line 1!
+      Start your Zenith code with <strong>zen</strong> on the first line!
     </div>
   </div>
 
   <div id="editor-overlay">
     <button id="close-editor" onclick="toggleEditor()">×</button>
     <h2 style="margin-bottom:1rem; color:white;">Zenith Code Editor</h2>
-    <p style="color:#94a3b8; margin-bottom:1.5rem;">Start with <code>zen</code> on the first line. Build with simple syntax!</p>
+    <p style="color:#94a3b8; margin-bottom:1.5rem;">Start with <code>zen</code> on line 1. Build beautiful sites with simple lines!</p>
     <textarea id="zenInput">
 zen
 @hero
@@ -274,31 +270,41 @@ FOOTER
     function downloadHTML() {
       const code = document.getElementById('zenInput').value.trim();
       const lines = code.split('\n').map(l => l.trim()).filter(Boolean);
-      if (!lines[0]?.toLowerCase().startsWith('zen')) return alert("Start with 'zen' on line 1!");
+      if (!lines[0]?.toLowerCase().startsWith('zen')) {
+        alert("Start with 'zen' on the first line!");
+        return;
+      }
       const cleanCode = lines.slice(1).join('\n');
-      const blob = new Blob([zenithToHtml(cleanCode)], {type: 'text/html'});
-      const url = URL.createObjectURL(blob);
+      const fullHtml = zenithToHtml(cleanCode);
+
+      const dataUri = 'data:text/html;charset=utf-8,' + encodeURIComponent(fullHtml);
       const a = document.createElement('a');
-      a.href = url;
+      a.href = dataUri;
       a.download = 'my-zenith-site.html';
+      document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(url);
+      document.body.removeChild(a);
     }
 
     function downloadCSS() {
-      const css = zenithToHtml('').match(/<style>([\s\S]*?)<\/style>/)?.[1]?.trim() || '';
-      if (!css) return alert("No CSS yet.");
-      const blob = new Blob([css], {type: 'text/css'});
-      const url = URL.createObjectURL(blob);
+      const cssMatch = zenithToHtml('').match(/<style>([\s\S]*?)<\/style>/);
+      const css = cssMatch ? cssMatch[1].trim() : '';
+      if (!css) {
+        alert("No CSS generated yet. Try rendering first!");
+        return;
+      }
+
+      const dataUri = 'data:text/css;charset=utf-8,' + encodeURIComponent(css);
       const a = document.createElement('a');
-      a.href = url;
+      a.href = dataUri;
       a.download = 'zenith-styles.css';
+      document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(url);
+      document.body.removeChild(a);
     }
 
     document.getElementById('zenInput').addEventListener('input', renderPreview);
-    renderPreview(); // Load initial preview
+    renderPreview(); // Initial load
   </script>
 </body>
 </html>
