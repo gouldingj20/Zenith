@@ -7,28 +7,29 @@
   <style>
     body {
       margin: 0;
-      height: 100vh;
       font-family: system-ui, -apple-system, sans-serif;
-      display: flex;
       background: #f8fafc;
       color: #1e293b;
+      height: 100vh;
+      display: flex;
+      flex-direction: row;
     }
     #editor {
-      width: 50%;
-      padding: 2rem;
+      flex: 1;
+      padding: 1.5rem;
       background: #f1f5f9;
-      border-right: 1px solid #e2e8f0;
       overflow-y: auto;
     }
     #preview {
       flex: 1;
       background: white;
+      overflow: hidden;
     }
     textarea {
       width: 100%;
-      height: 70vh;
+      height: 65vh;
       font-family: 'Courier New', monospace;
-      font-size: 15px;
+      font-size: 16px;
       padding: 1rem;
       border: 1px solid #cbd5e1;
       border-radius: 8px;
@@ -37,13 +38,13 @@
       line-height: 1.5;
     }
     .controls {
-      margin-top: 1.5rem;
+      margin-top: 1.2rem;
       display: flex;
       gap: 1rem;
       flex-wrap: wrap;
     }
     button {
-      padding: 0.8rem 1.6rem;
+      padding: 0.9rem 1.8rem;
       background: #3b82f6;
       color: white;
       border: none;
@@ -57,11 +58,40 @@
     }
     h2 {
       margin: 0 0 1rem 0;
+      font-size: 1.8rem;
     }
     p.intro {
       margin: 0 0 1.5rem 0;
       color: #475569;
+      font-size: 1.1rem;
     }
+
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+      body {
+        flex-direction: column;
+        height: auto;
+      }
+      #editor, #preview {
+        width: 100%;
+        flex: none;
+      }
+      #preview {
+        height: 50vh; /* or adjust as needed */
+      }
+      textarea {
+        height: 50vh;
+        font-size: 15px;
+      }
+      h2 {
+        font-size: 1.6rem;
+      }
+      button {
+        padding: 0.8rem 1.5rem;
+        font-size: 0.95rem;
+      }
+    }
+
     iframe {
       width: 100%;
       height: 100%;
@@ -72,32 +102,38 @@
 <body>
   <div id="editor">
     <h2>Zenith Playground</h2>
-    <p class="intro">Write in simple Zenith syntax → see your website live below. Download the full HTML when ready!</p>
+    <p class="intro">Write simple Zenith code → watch it come alive in the preview below. Download full HTML when ready!</p>
     
     <textarea id="zenInput">
 @hero
 STACK
-  TITLE "Zenith – Build Fast" / inherit / bold / #111 / center
-  TEXT "One readable line for structure + style. No more HTML/CSS switching." / inherit / normal / #555 / center
-  BUTTON "Try Now" / inherit / bold / white / center / #3b82f6
+  TITLE "Zenith – Easy Websites" / inherit / bold / #111 / center
+  TEXT "Type simple lines, get full sites." / inherit / normal / #555 / center
+  BUTTON "Start Building" / inherit / bold / white / center / #3b82f6
+
+  IMAGE "https://images.unsplash.com/photo-1516321318423-f06f85e504b3" / Hero Image / 90%
 
 @main
 STACK
-  TITLE "Features" / inherit / bold / #111 / left
-  TEXT "Powerful enough for real sites."
+  TITLE "Core Features" / inherit / bold / #111 / left
 
   GRID
     CARD
       SUBTITLE "Readable"
-      TEXT "Human-first syntax."
+      TEXT "No tags or brackets – just intent."
     CARD
     CARD
-      SUBTITLE "Instant"
-      TEXT "Live preview + download."
+      SUBTITLE "Live Preview"
+      TEXT "See changes instantly."
     CARD
-    CARD
-      SUBTITLE "Clean"
-      TEXT "Full raw HTML/CSS output."
+
+  NAV
+    LINK "Home" / #
+    LINK "About" / #about
+    LINK "Contact" / #contact
+
+  FOOTER
+    COPYRIGHT "© 2026 Zenith – Free for Learning"
     </textarea>
 
     <div class="controls">
@@ -111,7 +147,7 @@ STACK
   </div>
 
   <script>
-    // Your Zenith to HTML/CSS transpiler – expand this as your "dictionary" grows!
+    // Zenith transpiler – your growing "dictionary" lives here!
     function zenithToHtml(zenCode) {
       let html = `<!DOCTYPE html>
 <html lang="en">
@@ -127,32 +163,46 @@ STACK
     .card:hover { transform:translateY(-5px); }
     .btn { display:inline-block; padding:1rem 2.5rem; background:#3b82f6; color:white; border:none; border-radius:8px; font-weight:bold; text-decoration:none; cursor:pointer; transition:background 0.3s; }
     .btn:hover { background:#2563eb; }
+    nav { background:#111; color:white; padding:1rem; position:sticky; top:0; z-index:100; }
+    nav ul { display:flex; gap:2rem; list-style:none; margin:0; padding:0; justify-content:center; }
+    nav a { color:white; text-decoration:none; font-weight:bold; }
+    footer { background:#111; color:white; text-align:center; padding:3rem 2rem; margin-top:4rem; }
+    img { max-width:100%; height:auto; border-radius:12px; display:block; margin:1rem auto; }
     h1 { font-size:3.5rem; margin:0; }
     h3 { font-size:2rem; margin:0 0 1rem; }
     p { max-width:70ch; margin:0 auto; font-size:1.1rem; }
     section { padding:4rem 2rem; }
+    @media (max-width:768px) { .stack, .grid { padding:3rem 1.5rem; } .grid { grid-template-columns:1fr; } }
   </style>
 </head>
 <body>`;
 
       const lines = zenCode.split('\n').map(l => l.trim()).filter(Boolean);
-      let containerStack = []; // To properly close containers
+      let containerStack = [];
 
       lines.forEach(line => {
         if (line.startsWith('@')) {
           html += '<section>';
         }
         if (line === 'STACK') {
-          containerStack.push('stack');
+          containerStack.push('div');
           html += '<div class="stack">';
         }
         if (line === 'GRID') {
-          containerStack.push('grid');
+          containerStack.push('div');
           html += '<div class="grid">';
         }
         if (line === 'CARD') {
-          containerStack.push('card');
+          containerStack.push('div');
           html += '<div class="card">';
+        }
+        if (line === 'NAV') {
+          containerStack.push('nav');
+          html += '<nav><ul>';
+        }
+        if (line === 'FOOTER') {
+          containerStack.push('footer');
+          html += '<footer>';
         }
         if (line.startsWith('TITLE ')) {
           const parts = line.slice(6).split('/').map(p => p.trim().replace(/"/g,''));
@@ -178,15 +228,31 @@ STACK
           const text = line.slice(9).trim().replace(/"/g,'');
           html += `<h3>${text}</h3>`;
         }
-        // Add new components here as your dictionary grows!
-        // Example placeholder for future IMAGE:
-        // if (line.startsWith('IMAGE ')) { ... }
+        if (line.startsWith('IMAGE ')) {
+          const parts = line.slice(6).split('/').map(p => p.trim().replace(/"/g,''));
+          const src = parts[0];
+          const alt = parts[1] || 'Image';
+          const width = parts[2] || '90%';
+          html += `<img src="${src}" alt="${alt}" style="max-width:${width};">`;
+        }
+        if (line.startsWith('LINK ')) {
+          const parts = line.slice(5).split('/').map(p => p.trim().replace(/"/g,''));
+          const text = parts[0];
+          const href = parts[1] || '#';
+          html += `<li><a href="${href}">${text}</a></li>`;
+        }
+        if (line.startsWith('COPYRIGHT ')) {
+          const text = line.slice(10).trim().replace(/"/g,'');
+          html += `<p>${text}</p>`;
+        }
       });
 
-      // Close all open containers properly
+      // Close containers in reverse order
       while (containerStack.length > 0) {
-        html += '</div>';
-        containerStack.pop();
+        const tag = containerStack.pop();
+        if (tag === 'nav') html += '</ul></nav>';
+        else if (tag === 'footer') html += '</footer>';
+        else html += '</div>';
       }
       html += '</section></body></html>';
       return html;
@@ -209,9 +275,8 @@ STACK
       URL.revokeObjectURL(url);
     }
 
-    // Live preview on every change
     document.getElementById('zenInput').addEventListener('input', renderPreview);
-    renderPreview(); // Start with example
+    renderPreview(); // Initial render
   </script>
 </body>
 </html>
