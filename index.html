@@ -17,7 +17,7 @@
       font-family: system-ui, sans-serif;
       background: var(--bg);
       color: var(--text);
-      min-height: 100vh;
+      height: 100vh;
       overflow: hidden;
     }
     header {
@@ -49,7 +49,7 @@
     #preview-container {
       height: 100vh;
       width: 100vw;
-      overflow: auto; /* allow scroll if needed */
+      overflow: hidden;
     }
     #previewFrame {
       width: 100%;
@@ -181,44 +181,133 @@ FOOTER
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Your Zenith Website</title>
   <style>
-    html, body { height:100%; margin:0; }
-    body { 
-      font-family:system-ui, sans-serif; 
-      background:linear-gradient(to bottom, #f8fafc, #e2e8f0); 
-      color:#0f172a; 
-      display:flex; 
-      flex-direction:column; 
-      min-height:100vh; 
+    html, body {
+      height: 100%;
+      margin: 0;
     }
-    main { flex:1 0 auto; }
-    .stack { display:flex; flex-direction:column; gap:3rem; padding:6rem 4rem; align-items:center; text-align:center; }
-    .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:2.5rem; padding:3rem 2rem; }
-    .card { background:white; border-radius:16px; padding:2.5rem; box-shadow:0 10px 40px rgba(0,0,0,0.12); transition:transform 0.3s ease; }
-    .card:hover { transform:translateY(-8px); }
-    .btn { display:inline-block; padding:1.1rem 2.8rem; background:#6366f1; color:white; border:none; border-radius:10px; font-weight:600; cursor:pointer; transition:all 0.25s ease; }
-    .btn:hover { background:#818cf8; transform:translateY(-3px); }
-    nav { background:#0f172a; color:white; padding:1.2rem 4rem; position:sticky; top:0; z-index:1000; backdrop-filter:blur(10px); }
-    nav ul { display:flex; gap:3rem; list-style:none; margin:0; padding:0; justify-content:center; flex-wrap:wrap; }
-    nav a { color:#e2e8f0; text-decoration:none; font-weight:600; transition:color 0.2s; }
-    nav a:hover { color:#c7d2fe; }
-    footer { 
-      background:#0f172a; 
-      color:#94a3b8; 
-      text-align:center; 
-      padding:4rem 2rem; 
-      flex-shrink:0; 
-      font-size:0.95rem; 
+    body {
+      font-family: system-ui, sans-serif;
+      background: linear-gradient(to bottom, #f8fafc, #e2e8f0);
+      color: #0f172a;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
     }
-    img { max-width:100%; height:auto; border-radius:16px; display:block; margin:2rem auto; box-shadow:0 10px 30px rgba(0,0,0,0.15); }
-    h1 { font-size:4rem; margin:0; letter-spacing:-1px; }
-    h3 { font-size:2.2rem; margin:0 0 1rem; }
-    p { max-width:75ch; margin:0 auto; font-size:1.15rem; }
-    section { padding:5rem 3rem; }
-    @media (max-width:768px) { 
-      .stack, .grid { padding:4rem 1.8rem; } 
-      .grid { grid-template-columns:1fr; } 
-      nav ul { gap:1.5rem; } 
-      h1 { font-size:3rem; } 
+    main {
+      flex: 1 0 auto;
+    }
+    footer {
+      flex-shrink: 0;
+      background: #0f172a;
+      color: #94a3b8;
+      text-align: center;
+      padding: 4rem 2rem;
+      font-size: 0.95rem;
+    }
+    .stack {
+      display: flex;
+      flex-direction: column;
+      gap: 3rem;
+      padding: 6rem 4rem;
+      align-items: center;
+      text-align: center;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 2.5rem;
+      padding: 3rem 2rem;
+    }
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 2.5rem;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.12);
+      transition: transform 0.3s ease;
+    }
+    .card:hover {
+      transform: translateY(-8px);
+    }
+    .btn {
+      display: inline-block;
+      padding: 1.1rem 2.8rem;
+      background: #6366f1;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+    .btn:hover {
+      background: #818cf8;
+      transform: translateY(-3px);
+    }
+    nav {
+      background: #0f172a;
+      color: white;
+      padding: 1.2rem 4rem;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      backdrop-filter: blur(10px);
+    }
+    nav ul {
+      display: flex;
+      gap: 3rem;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    nav a {
+      color: #e2e8f0;
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.2s;
+    }
+    nav a:hover {
+      color: #c7d2fe;
+    }
+    img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 16px;
+      display: block;
+      margin: 2rem auto;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    }
+    h1 {
+      font-size: 4rem;
+      margin: 0;
+      letter-spacing: -1px;
+    }
+    h3 {
+      font-size: 2.2rem;
+      margin: 0 0 1rem;
+    }
+    p {
+      max-width: 75ch;
+      margin: 0 auto;
+      font-size: 1.15rem;
+    }
+    section {
+      padding: 5rem 3rem;
+    }
+    @media (max-width: 768px) {
+      .stack, .grid {
+        padding: 4rem 1.8rem;
+      }
+      .grid {
+        grid-template-columns: 1fr;
+      }
+      nav ul {
+        gap: 1.5rem;
+      }
+      h1 {
+        font-size: 3rem;
+      }
     }
   </style>
 </head>
@@ -230,11 +319,26 @@ FOOTER
 
       lines.forEach(line => {
         if (line.startsWith('@')) html += '<section>';
-        if (line === 'STACK') { containerStack.push('div'); html += '<div class="stack">'; }
-        if (line === 'GRID') { containerStack.push('div'); html += '<div class="grid">'; }
-        if (line === 'CARD') { containerStack.push('div'); html += '<div class="card">'; }
-        if (line === 'NAV') { containerStack.push('nav'); html += '<nav><ul>'; }
-        if (line === 'FOOTER') { containerStack.push('footer'); html += '<footer>'; }
+        if (line === 'STACK') {
+          containerStack.push('div');
+          html += '<div class="stack">';
+        }
+        if (line === 'GRID') {
+          containerStack.push('div');
+          html += '<div class="grid">';
+        }
+        if (line === 'CARD') {
+          containerStack.push('div');
+          html += '<div class="card">';
+        }
+        if (line === 'NAV') {
+          containerStack.push('nav');
+          html += '<nav><ul>';
+        }
+        if (line === 'FOOTER') {
+          containerStack.push('footer');
+          html += '<footer>';
+        }
         if (line.startsWith('TITLE ')) {
           const parts = line.slice(6).split('/').map(p => p.trim().replace(/"/g,''));
           html += `<h1 style="font-weight:${parts[1]||'normal'}; color:${parts[3]||'#0f172a'}; text-align:${parts[4]||'center'};">${parts[0]}</h1>`;
