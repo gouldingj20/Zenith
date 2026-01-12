@@ -15,35 +15,39 @@ h1 { margin-bottom:20px; }
 <body>
 
 <h1>Zenith Simple Code</h1>
+
 <textarea id="zenithInput" placeholder="Type your Zenith code here..."></textarea>
+
 <pre id="htmlOutput"></pre>
+
 <div id="divider">----- CSS -----</div>
+
 <pre id="cssOutput"></pre>
+
 <div id="warnings"></div>
 
 <script>
 // --- Dictionary ---
 const dictionary = {
   "zenith": {type:"meta"},
-  "lang": {type:"meta"},
   "page": {type:"meta"},
-  "header": {tag:"header",type:"section"},
-  "hero": {tag:"section",type:"section"},
-  "main": {tag:"main",type:"section"},
-  "footer": {tag:"footer",type:"section"},
-  "stack": {tag:"div",type:"layout",style:"display:flex;flex-direction:column;gap:40px"},
-  "grid": {tag:"div",type:"layout",style:"display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:32px"},
-  "column": {tag:"div",type:"layout",style:"display:flex;flex-direction:column;gap:16px"},
-  "actions": {tag:"div",type:"layout",style:"display:flex;gap:16px;flex-wrap:wrap"},
-  "title": {tag:"h1",type:"text"},
-  "subtitle": {tag:"h2",type:"text"},
-  "text": {tag:"p",type:"text"},
-  "step": {tag:"p",type:"text",style:"font-weight:500"},
-  "button": {tag:"button",type:"interactive",style:"padding:14px 28px;border-radius:999px;border:none;cursor:pointer"},
-  "link": {tag:"a",type:"interactive"},
-  "image": {tag:"img",type:"media"},
-  "card": {tag:"div",type:"component",style:"padding:32px;border-radius:16px;background:white;box-shadow:0 20px 40px rgba(0,0,0,0.06)"},
-  "section": {tag:"section",type:"section"}
+  "header": {tag:"header", type:"section"},
+  "hero": {tag:"section", type:"section"},
+  "main": {tag:"main", type:"section"},
+  "footer": {tag:"footer", type:"section"},
+  "stack": {tag:"div", type:"layout", style:"display:flex;flex-direction:column;gap:40px"},
+  "grid": {tag:"div", type:"layout", style:"display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:32px"},
+  "column": {tag:"div", type:"layout", style:"display:flex;flex-direction:column;gap:16px"},
+  "actions": {tag:"div", type:"layout", style:"display:flex;gap:16px;flex-wrap:wrap"},
+  "title": {tag:"h1", type:"text"},
+  "subtitle": {tag:"h2", type:"text"},
+  "text": {tag:"p", type:"text"},
+  "step": {tag:"p", type:"text", style:"font-weight:500"},
+  "button": {tag:"button", type:"interactive", style:"padding:14px 28px;border-radius:999px;border:none;cursor:pointer"},
+  "link": {tag:"a", type:"interactive"},
+  "image": {tag:"img", type:"media"},
+  "card": {tag:"div", type:"component", style:"padding:32px;border-radius:16px;background:white;box-shadow:0 20px 40px rgba(0,0,0,0.06)"},
+  "section": {tag:"section", type:"section"}
 };
 
 // --- Compiler ---
@@ -53,7 +57,7 @@ function compileZenith(code){
   let cssLines = [];
   let warnings = [];
   let generatedClasses = new Set();
-  let htmlLang = "en";
+  let htmlLang = "en";      // default lang
   let pageTitle = "Zenith Page";
 
   function parse(i=0, parentIndent=0){
@@ -66,10 +70,11 @@ function compileZenith(code){
 
       line = line.trim();
       if(line.startsWith("/")){
-        const [el,...rest]=line.split(" ");
+        const [el,...rest] = line.split(" ");
         const name = el.slice(1);
         let content = rest.join(" ").replace(/^["“”]|["“”]$/g,'');
         const def = dictionary[name];
+
         if(!def){
           warnings.push(`Line ${i+1}: Unknown element '${name}'`);
           result.push(`<!-- Unknown element: ${name} -->`);
@@ -77,20 +82,26 @@ function compileZenith(code){
         }
 
         if(def.type==="meta"){
-          if(name==="zenith") result.push("<!DOCTYPE html>");
-          else if(name==="lang") htmlLang = content||"en";
-          else if(name==="page") pageTitle = content;
+          if(name==="zenith"){
+            // Check if version includes lang at the end
+            const langMatch = rest.find(r => /^[a-z]{2}$/i.test(r));
+            if(langMatch) htmlLang = langMatch.toLowerCase();
+          } else if(name==="page"){
+            pageTitle = content || "Zenith Page";
+          }
           i++; continue;
         }
 
         const tag = def.tag || "div";
         const classAttr = (def.type==="layout"||def.type==="component")?` class="${name}"`:"";
         let children = "";
+
         if(def.type==="layout"||def.type==="section"||def.type==="component"){
-          let childResult = parse(i+1, indent+1);
+          const childResult = parse(i+1, indent+1);
           children = childResult.lines.join("\n");
           i = childResult.next-1;
         }
+
         if(tag==="img") result.push(`<img src="${content}" alt="" />`);
         else result.push(`<${tag}${classAttr}>${content}${children?'\n'+children+'\n':''}</${tag}>`);
 
@@ -100,24 +111,27 @@ function compileZenith(code){
           generatedClasses.add(name);
         }
 
-      }else{
+      } else {
         result.push(`<p>${line}</p>`);
       }
       i++;
     }
-    return {lines:result,next:i};
+    return {lines: result, next: i};
   }
 
-  let body = parse(0);
-  htmlLines.push("<html lang=\""+htmlLang+"\">");
-  htmlLines.push("<head>");
-  htmlLines.push('<meta charset="UTF-8">');
-  htmlLines.push(`<title>${pageTitle}</title>`);
-  htmlLines.push("</head>");
-  htmlLines.push("<body>");
-  htmlLines.push(...body.lines);
-  htmlLines.push("</body>");
-  htmlLines.push("</html>");
+  let bodyResult = parse(0);
+
+  // Build final HTML properly
+  htmlLines.push('<!DOCTYPE html>');
+  htmlLines.push('<html lang="'+htmlLang+'">');
+  htmlLines.push('<head>');
+  htmlLines.push('  <meta charset="UTF-8">');
+  htmlLines.push('  <title>'+pageTitle+'</title>');
+  htmlLines.push('</head>');
+  htmlLines.push('<body>');
+  htmlLines.push(...bodyResult.lines);
+  htmlLines.push('</body>');
+  htmlLines.push('</html>');
 
   return {html: htmlLines.join("\n"), css: cssLines.join("\n"), warnings};
 }
@@ -130,12 +144,13 @@ window.addEventListener("DOMContentLoaded",()=>{
   const warningsDiv=document.getElementById("warnings");
 
   input.addEventListener("input",()=>{
-    const {html,css,warnings}=compileZenith(input.value);
+    const {html, css, warnings} = compileZenith(input.value);
     htmlOut.textContent = html;
     cssOut.textContent = css;
-    warningsDiv.textContent = warnings.length?warnings.join("\n"):"";
+    warningsDiv.textContent = warnings.length ? warnings.join("\n") : "";
   });
 });
 </script>
+
 </body>
 </html>
