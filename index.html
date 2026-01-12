@@ -8,7 +8,7 @@
   h1 { font-size: 2rem; margin-bottom: 20px; }
 
   textarea {
-    width: 100%; height: 25vh; font-family: monospace; font-size: 16px;
+    width: 100%; height: 30vh; font-family: monospace; font-size: 16px;
     padding: 12px; box-sizing: border-box; border: 1px solid #ccc;
     border-radius: 8px; resize: vertical; margin-bottom: 20px;
   }
@@ -48,12 +48,7 @@ const cssOut = document.getElementById('cssOutput');
 const warningsDiv = document.getElementById('warnings');
 
 input.addEventListener('input', () => {
-  if (!ready) return; // Wait until dictionary & grammar are loaded
   const { html, css, warnings } = compileZenithToHTMLandCSS(input.value);
-  htmlOut.textContent = html;
-  cssOut.textContent = css;
-  warningsDiv.textContent = warnings.length ? warnings.join('\n') : '';
-});
   htmlOut.textContent = html;
   cssOut.textContent = css;
   warningsDiv.textContent = warnings.length ? warnings.join('\n') : '';
