@@ -1,21 +1,34 @@
-let dictionary = {};
-let grammar = {};
-let ready = false;
+// --- Embedded dictionary.json ---
+const dictionary = {
+  "stack": { "tag": "div", "type": "layout", "style": "display:flex;flex-direction:column;gap:40px" },
+  "grid": { "tag": "div", "type": "layout", "style": "display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:32px" },
+  "column": { "tag": "div", "type": "layout", "style": "display:flex;flex-direction:column;gap:16px" },
+  "title": { "tag": "h1", "type": "text" },
+  "subtitle": { "tag": "h2", "type": "text" },
+  "text": { "tag": "p", "type": "text" },
+  "step": { "tag": "p", "type": "text", "style": "font-weight:500" },
+  "button": { "tag": "button", "type": "interactive", "style": "padding:14px 28px;border-radius:999px;border:none;cursor:pointer" },
+  "link": { "tag": "a", "type": "interactive" },
+  "image": { "tag": "img", "type": "media" },
+  "card": { "tag": "div", "type": "component", "style": "padding:32px;border-radius:16px;background:white;box-shadow:0 20px 40px rgba(0,0,0,0.06)" },
+  "section": { "tag": "section", "type": "section" }
+  // add all other elements here if needed
+};
 
-// Load dictionary and grammar first
-Promise.all([
-  fetch('zenith/dictionary/dictionary.json').then(res => res.json()),
-  fetch('zenith/grammar/grammar.json').then(res => res.json())
-]).then(([dict, gram]) => {
-  dictionary = dict;
-  grammar = gram;
-  ready = true;
-});
-  
-// Compiler: outputs { html, css, warnings }
+// --- Embedded grammar.json ---
+const grammar = {
+  "symbols": { "/": "Start element", "\"\"": "Wrap string content" },
+  "nesting_rules": {
+    "section": ["stack", "grid", "title", "text", "button", "card"],
+    "stack": ["title", "text", "button", "stack", "grid", "card"],
+    "grid": ["column", "card", "stack", "text", "title"],
+    "column": ["stack", "text", "button", "title"],
+    "card": ["title", "text", "button", "image"],
+  }
+};
+
+// --- Compiler function ---
 function compileZenithToHTMLandCSS(code) {
-  if (!ready) return { html: '', css: '', warnings: ['Waiting for dictionary/grammar to load...'] };
-
   const lines = code.split('\n');
   let html = '';
   let css = '';
@@ -57,6 +70,7 @@ function compileZenithToHTMLandCSS(code) {
 
       const tag = def.tag || 'div';
       const classAttr = (def.type === 'layout' || def.type === 'component') ? ` class="${name}"` : '';
+
       html += tag === 'img'
         ? `<img src="${content}" alt="" />\n`
         : `<${tag}${classAttr}>${content}</${tag}>\n`;
