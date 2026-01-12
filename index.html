@@ -53,15 +53,14 @@ const dictionary = {
 // --- Compiler ---
 function compileZenith(code){
   const lines = code.split("\n");
-  let htmlLines = [];
+  let htmlLang = "en";
+  let pageTitle = "Zenith Page";
   let cssLines = [];
   let warnings = [];
   let generatedClasses = new Set();
-  let htmlLang = "en";      // default lang
-  let pageTitle = "Zenith Page";
 
   function parse(i=0, parentIndent=0){
-    let result = [];
+    let bodyLines = [];
     while(i<lines.length){
       let line = lines[i];
       if(!line.trim()){ i++; continue; }
@@ -70,41 +69,46 @@ function compileZenith(code){
 
       line = line.trim();
       if(line.startsWith("/")){
-        const [el,...rest] = line.split(" ");
+        const [el,...rest] = line.split(' ');
         const name = el.slice(1);
         let content = rest.join(" ").replace(/^["“”]|["“”]$/g,'');
         const def = dictionary[name];
 
         if(!def){
           warnings.push(`Line ${i+1}: Unknown element '${name}'`);
-          result.push(`<!-- Unknown element: ${name} -->`);
+          bodyLines.push(`<!-- Unknown element: ${name} -->`);
           i++; continue;
         }
 
+        // --- Meta Handling ---
         if(def.type==="meta"){
           if(name==="zenith"){
-            // Check if version includes lang at the end
-            const langMatch = rest.find(r => /^[a-z]{2}$/i.test(r));
+            // optional lang after version
+            const langMatch = rest.find(r=>/^[a-z]{2}$/i.test(r));
             if(langMatch) htmlLang = langMatch.toLowerCase();
-          } else if(name==="page"){
-            pageTitle = content || "Zenith Page";
+            i++; continue;
           }
-          i++; continue;
+          if(name==="page"){
+            pageTitle = content || "Zenith Page";
+            i++; continue;
+          }
         }
 
-        const tag = def.tag || "div";
+        // --- Normal elements ---
+        const tag = def.tag || 'div';
         const classAttr = (def.type==="layout"||def.type==="component")?` class="${name}"`:"";
         let children = "";
 
         if(def.type==="layout"||def.type==="section"||def.type==="component"){
           const childResult = parse(i+1, indent+1);
-          children = childResult.lines.join("\n");
+          children = childResult.bodyLines.join('\n');
           i = childResult.next-1;
         }
 
-        if(tag==="img") result.push(`<img src="${content}" alt="" />`);
-        else result.push(`<${tag}${classAttr}>${content}${children?'\n'+children+'\n':''}</${tag}>`);
+        if(tag==="img") bodyLines.push(`<img src="${content}" alt="" />`);
+        else bodyLines.push(`<${tag}${classAttr}>${content}${children?'\n'+children+'\n':''}</${tag}>`);
 
+        // --- CSS ---
         if(def.style && !generatedClasses.has(name)){
           if(classAttr) cssLines.push(`.${name} { ${def.style} }`);
           else cssLines.push(`${tag} { ${def.style} }`);
@@ -112,28 +116,23 @@ function compileZenith(code){
         }
 
       } else {
-        result.push(`<p>${line}</p>`);
+        bodyLines.push(`<p>${line}</p>`);
       }
       i++;
     }
-    return {lines: result, next: i};
+    return {bodyLines, next:i};
   }
 
   let bodyResult = parse(0);
 
-  // Build final HTML properly
-  htmlLines.push('<!DOCTYPE html>');
-  htmlLines.push('<html lang="'+htmlLang+'">');
-  htmlLines.push('<head>');
-  htmlLines.push('  <meta charset="UTF-8">');
-  htmlLines.push('  <title>'+pageTitle+'</title>');
-  htmlLines.push('</head>');
-  htmlLines.push('<body>');
-  htmlLines.push(...bodyResult.lines);
-  htmlLines.push('</body>');
-  htmlLines.push('</html>');
+  // --- Final HTML ---
+  let finalHTML = '';
+  finalHTML += '<!DOCTYPE html>\n';
+  finalHTML += `<html lang="${htmlLang}">\n<head>\n  <meta charset="UTF-8">\n  <title>${pageTitle}</title>\n</head>\n<body>\n`;
+  finalHTML += bodyResult.bodyLines.join('\n');
+  finalHTML += '\n</body>\n</html>';
 
-  return {html: htmlLines.join("\n"), css: cssLines.join("\n"), warnings};
+  return {html: finalHTML, css: cssLines.join('\n'), warnings};
 }
 
 // --- DOM ---
