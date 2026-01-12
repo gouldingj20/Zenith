@@ -203,8 +203,21 @@ window.addEventListener("DOMContentLoaded",()=>{
       warningsDiv.textContent = "Compile first!";
       return;
     }
-    const previewContent = `<style>${lastCompiled.css}</style>\n${lastCompiled.html}`;
-    previewIframe.srcdoc = previewContent;
+    // --- Build proper iframe srcdoc ---
+    const iframeContent = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <style>${lastCompiled.css}</style>
+        <title>Preview</title>
+      </head>
+      <body>
+        ${lastCompiled.html.replace(/^<!DOCTYPE html>\n<html[^>]*>\n<head>.*<\/head>\n<body>\n?/s,'').replace(/\n<\/body>\n<\/html>$/,'')}
+      </body>
+      </html>
+    `;
+    previewIframe.srcdoc = iframeContent;
     previewModal.style.display = "flex";
   });
 
