@@ -4,26 +4,110 @@
 <meta charset="UTF-8">
 <title>Zenith Playground</title>
 
-<link rel="stylesheet" href="ui.css">
+<style>
+/* =====================
+   UI STYLE (NOT OUTPUT)
+===================== */
+body {
+  background:#0b0f14;
+  color:#c9d1d9;
+  font-family: "Fira Code", monospace;
+  padding:24px;
+}
+
+h1 {
+  color:#58a6ff;
+  margin-bottom:8px;
+}
+
+h2 {
+  color:#7ee787;
+  margin-top:24px;
+}
+
+textarea {
+  width:100%;
+  height:220px;
+  background:#010409;
+  color:#c9d1d9;
+  border:1px solid #30363d;
+  border-radius:8px;
+  padding:12px;
+  font-size:14px;
+}
+
+pre {
+  background:#010409;
+  border:1px solid #30363d;
+  border-radius:8px;
+  padding:12px;
+  min-height:140px;
+  white-space:pre-wrap;
+}
+
+button {
+  background:#238636;
+  color:white;
+  border:none;
+  padding:10px 18px;
+  border-radius:999px;
+  font-weight:600;
+  cursor:pointer;
+}
+
+button:hover {
+  background:#2ea043;
+}
+
+.controls {
+  margin:12px 0;
+  display:flex;
+  gap:12px;
+}
+
+#preview {
+  display:none;
+  position:fixed;
+  inset:0;
+  background:#000c;
+  z-index:999;
+}
+
+#preview iframe {
+  width:90%;
+  height:90%;
+  margin:3% auto;
+  display:block;
+  background:white;
+  border-radius:12px;
+}
+
+#preview button {
+  position:absolute;
+  top:16px;
+  right:16px;
+  background:#f85149;
+}
+</style>
 </head>
 
 <body>
 
-<h1>Zenith Playground</h1>
+<h1>Zenith Simple Code</h1>
 
-<textarea id="input" placeholder='
+<textarea id="zenInput">
 /zen
 /lang "en"
 
 /head
-  /charset
-  /page "Zenith Demo"
+/charset
+/page "Zenith Demo"
 /head/
 
 /header
-  /title "Hello World" serif:bold:#ccc:center
+/title "Hello World" serif:bold:#ccc:center
 /header/
-'></textarea>
+</textarea>
 
 <div class="controls">
   <button onclick="compileZenith()">Compile</button>
@@ -36,134 +120,143 @@
 <h2>CSS Output</h2>
 <pre id="cssOut"></pre>
 
-<div id="warnings"></div>
-
 <div id="preview">
-  <button onclick="closePreview()">Close Preview</button>
+  <button onclick="closePreview()">Close</button>
   <iframe id="frame"></iframe>
 </div>
 
 <script>
-/* ========= DICTIONARY ========= */
+/* =====================
+   DICTIONARY
+===================== */
 const DICTIONARY = {
   zen: { type: "doctype" },
-  lang: { type: "html-attr" },
-
+  lang: { type: "lang" },
   head: { type: "block", tag: "head" },
   charset: { type: "meta", output: '<meta charset="UTF-8">' },
-  page: { type: "meta", tag: "title" },
-
+  page: { type: "title" },
   header: { type: "block", tag: "header" },
-  main: { type: "block", tag: "main" },
-  footer: { type: "block", tag: "footer" },
-
-  title: { type: "text", tag: "h1" },
-  text: { type: "text", tag: "p" }
+  title: { type: "text", tag: "h1" }
 };
 
-/* ========= COMPILER ========= */
-function compileZenith() {
-  const lines = document.getElementById("input").value.split("\n");
+/* =====================
+   GRAMMAR RULES
+===================== *
+- Lines start with /
+- Blocks open with /name
+- Blocks close with /name/
+- Text values use quotes
+- Styles after text: font:weight:color:align
+- centre → center auto fixed
+*/
 
-  let body = [];
-  let css = [];
-  let warnings = [];
-  let stack = [];
+/* =====================
+   COMPILER
+===================== */
+function compileZenith() {
+  const input = zenInput.value.split("\n");
 
   let lang = "en";
   let pageTitle = "Zenith Page";
+  let body = [];
+  let css = [];
+  let openBlocks = [];
 
-  const open = tag => {
-    body.push("  ".repeat(stack.length) + `<${tag}>`);
-    stack.push(tag);
-  };
+  let classId = 0;
 
-  const close = tag => {
-    if (stack.pop() !== tag) {
-      warnings.push(`Mismatched close: ${tag}`);
-    }
-    body.push("  ".repeat(stack.length) + `</${tag}>`);
-  };
-
-  for (let raw of lines) {
-    let line = raw.trim();
+  for (let raw of input) {
+    const line = raw.trim();
     if (!line) continue;
 
+    // /zen
     if (line === "/zen") continue;
 
+    // /lang "en"
     if (line.startsWith("/lang")) {
       lang = line.match(/"(.+?)"/)?.[1] || lang;
       continue;
     }
 
-    if (line === "/head") { open("head"); continue; }
-    if (line === "/head/") { close("head"); continue; }
+    // /head and /head/
+    if (line === "/head") continue;
+    if (line === "/head/") continue;
 
-    if (line === "/header") { open("header"); continue; }
-    if (line === "/header/") { close("header"); continue; }
+    // /charset
+    if (line === "/charset") continue;
 
-    if (line === "/main") { open("main"); continue; }
-    if (line === "/main/") { close("main"); continue; }
-
-    if (line === "/charset") {
-      body.push("  ".repeat(stack.length) + `<meta charset="UTF-8">`);
-      continue;
-    }
-
+    // /page "Title"
     if (line.startsWith("/page")) {
       pageTitle = line.match(/"(.+?)"/)?.[1] || pageTitle;
       continue;
     }
 
+    // /header
+    if (line === "/header") {
+      body.push("<header>");
+      openBlocks.push("header");
+      continue;
+    }
+
+    // /header/
+    if (line === "/header/") {
+      body.push("</header>");
+      openBlocks.pop();
+      continue;
+    }
+
+    // /title "text" styles
     if (line.startsWith("/title")) {
       const match = line.match(/"(.+?)"\s*(.*)/);
       const text = match?.[1] || "";
       const style = match?.[2] || "";
 
-      body.push("  ".repeat(stack.length) + `<h1>${text}</h1>`);
+      const className = `z-${++classId}`;
+      body.push(`<h1 class="${className}">${text}</h1>`);
 
       if (style) {
         const p = style.split(":");
         let rules = [];
+
         if (p[0]) rules.push(`font-family:${p[0]}`);
         if (p[1]) rules.push(`font-weight:${p[1]}`);
         if (p[2]) rules.push(`color:${p[2]}`);
         if (p[3]) rules.push(`text-align:${p[3] === "centre" ? "center" : p[3]}`);
-        css.push(`h1 { ${rules.join("; ")}; }`);
+
+        css.push(`.${className} { ${rules.join("; ")}; }`);
       }
+
       continue;
     }
-
-    warnings.push("Unknown line: " + line);
   }
 
   const html =
 `<!DOCTYPE html>
 <html lang="${lang}">
 <head>
-  <meta charset="UTF-8">
-  <title>${pageTitle}</title>
+<meta charset="UTF-8">
+<title>${pageTitle}</title>
 </head>
 <body>
 ${body.join("\n")}
 </body>
 </html>`;
 
-  document.getElementById("htmlOut").textContent = html;
-  document.getElementById("cssOut").textContent = css.join("\n");
-  document.getElementById("warnings").textContent = warnings.join("\n");
+  htmlOut.textContent = html;
+  cssOut.textContent = css.length ? css.join("\n") : "/* no styles */";
 }
 
-/* ========= PREVIEW ========= */
+/* =====================
+   PREVIEW
+===================== */
 function previewZenith() {
-  const html = document.getElementById("htmlOut").textContent;
-  const css = document.getElementById("cssOut").textContent;
+  if (!htmlOut.textContent) compileZenith();
 
-  const bodyOnly = html
-    .replace(/^[\s\S]*?<body>/, "")
-    .replace(/<\/body>[\s\S]*$/, "");
+  const html = htmlOut.textContent;
+  const css = cssOut.textContent;
 
-  document.getElementById("frame").srcdoc = `
+  const bodyOnly = html.split("<body>")[1].split("</body>")[0];
+
+  frame.srcdoc = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -174,11 +267,11 @@ ${bodyOnly}
 </body>
 </html>`;
 
-  document.getElementById("preview").style.display = "block";
+  preview.style.display = "block";
 }
 
 function closePreview() {
-  document.getElementById("preview").style.display = "none";
+  preview.style.display = "none";
 }
 </script>
 
