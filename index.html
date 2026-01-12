@@ -125,10 +125,9 @@ button:hover {
   <iframe id="frame"></iframe>
 </div>
 
-
 <script>
 /* ============================
-   DOM BINDS (REQUIRED)
+   DOM BINDINGS
 =============================== */
 const zenInput = document.getElementById("zenInput");
 const htmlOut  = document.getElementById("htmlOut");
@@ -138,22 +137,67 @@ const frame    = document.getElementById("frame");
 /* ============================
    ZENITH V1 — GRAMMAR
 ===============================
-- Lines start with /
-- /tag opens
-- /tag/ closes
-- Text must be in "quotes"
-- Attributes use key:value
-- Complex values use key:"value"
-- Boolean attributes allowed
-- Styles are shortcuts:
-  font weight color align size
-- CSS NEVER appears in HTML
-=============================== */
+
+Rules:
+
+1. Line structure:
+   - All commands start with /
+   - Example: /tagName "text" key:value key2:"complex value"
+
+2. Blocks:
+   - /tag opens a block
+   - /tag/ closes a block
+   - Example:
+     /header
+     /title "Hello World"
+     /header/
+
+3. Self-closing tags:
+   - Defined in dictionary as type:"self"
+   - Do not need a closing /tag/
+
+4. Text:
+   - Must be wrapped in quotes: "Some text here"
+   - Only one text node per line is allowed
+
+5. Attributes:
+   - key:value or key:"value"
+   - Boolean attributes are allowed (no value needed)
+
+6. Style shortcuts (Zenith-specific):
+   - font:font-family
+   - weight:font-weight
+   - color:text color
+   - align:text-align
+   - size:font-size (pixels)
+   - gap:gap (for grid/flex)
+   - cols:number of grid columns
+   - These are automatically converted into CSS classes
+
+7. Special directives:
+   - /zen → Doctype
+   - /lang "en" → Language for <html>
+   - /charset → <meta charset="UTF-8">
+   - /page "Title" → Sets <title>
+
+8. Zen-only blocks:
+   - /grid → grid container
+   - /card → card container
+
+Notes:
+- Nesting must be proper: open /tag, then close /tag/
+- Any unknown tag is ignored
+- /title outside /head → automatically becomes <h1>
+- All CSS is separated from HTML and generated into classes
+
+===============================
+*/
+
+
 
 /* ============================
    ZENITH V1 — DICTIONARY
 =============================== */
-
 const DICTIONARY = {
   zen: { type: "doctype" },
 
@@ -215,9 +259,8 @@ const DICTIONARY = {
 };
 
 /* ============================
-   ZENITH V1 — COMPILER
+   ZENITH V1 — COMPILER (FIXED)
 =============================== */
-
 let lastHTML = "";
 let lastCSS = "";
 
@@ -231,39 +274,37 @@ function compileZenith() {
   let classId = 0;
   let lang = "en";
   let pageTitle = "Zenith Page";
+  let inHead = false; // track head context
 
   for (let raw of lines) {
     const line = raw.trim();
     if (!line) continue;
 
-    if (line === "/zen") {
-      html.push("<!DOCTYPE html>");
-      continue;
-    }
+    if (line === "/zen") continue;
 
     if (line.startsWith("/lang")) {
       lang = line.match(/"(.+?)"/)?.[1] || lang;
       continue;
     }
 
-    if (line === "/charset") {
-      html.push('<meta charset="UTF-8">');
-      continue;
-    }
+    if (line === "/charset") continue;
 
     if (line.startsWith("/page")) {
       pageTitle = line.match(/"(.+?)"/)?.[1] || pageTitle;
       continue;
     }
 
+    // closing tags
     if (line.endsWith("/")) {
       const name = line.slice(1, -1);
+      if (name === "head") { inHead = false; continue; }
       const entry = DICTIONARY[name];
-      if (entry) html.push(`</${entry.tag || "div"}>`);
+      if (entry && entry.type !== "zen-grid" && entry.type !== "zen-card") html.push(`</${entry.tag || "div"}>`);
       continue;
     }
 
     const parts = line.slice(1).match(/(?:[^\s"]+|"[^"]*")+/g);
+    if (!parts) continue;
     const name = parts.shift();
     const entry = DICTIONARY[name];
     if (!entry) continue;
@@ -280,6 +321,15 @@ function compileZenith() {
           styles.push([k, v]);
         else attrs.push(`${k}="${v}"`);
       }
+    }
+
+    // track head
+    if (name === "head") { inHead = true; continue; }
+
+    // contextual title handling
+    if (name === "title" && !inHead) {
+      html.push(`<h1>${text}</h1>`);
+      continue;
     }
 
     let className = "";
@@ -349,7 +399,6 @@ ${html.join("\n")}
 /* ============================
    PREVIEW
 =============================== */
-
 function previewZenith() {
   if (!lastHTML) compileZenith();
   frame.srcdoc = `
