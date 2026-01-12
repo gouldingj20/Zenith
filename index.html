@@ -104,9 +104,13 @@ button:hover {
 /page "Zenith Demo"
 /head/
 
+/body
+
 /header
 /title "Hello World" serif:bold:#ccc:center
 /header/
+
+/body/
 </textarea>
 
 <div class="controls">
@@ -135,16 +139,11 @@ const cssOut   = document.getElementById("cssOut");
 const frame    = document.getElementById("frame");
 
 /* ============================
-   ZENITH V1 — GRAMMAR
-=============================== */
-
-/* ...Your grammar notes here... */
-
-/* ============================
    ZENITH V1 — DICTIONARY
 =============================== */
 const DICTIONARY = {
   zen: { type: "doctype" },
+
   html: { type: "block", tag: "html" },
   head: { type: "block", tag: "head" },
   body: { type: "block", tag: "body" },
@@ -214,7 +213,10 @@ function compileZenith() {
   let classId = 0;
   let lang = "en";
   let pageTitle = "Zenith Page";
+
   let inHead = false;
+  let inBody = false;
+  let bodyContent = [];
 
   for (let raw of lines) {
     const line = raw.trim();
@@ -225,11 +227,20 @@ function compileZenith() {
     if (line === "/charset") continue;
     if (line.startsWith("/page")) { pageTitle = line.match(/"(.+?)"/)?.[1] || pageTitle; continue; }
 
+    if (line === "/head") { inHead = true; continue; }
+    if (line === "/head/") { inHead = false; continue; }
+
+    if (line === "/body") { inBody = true; continue; }
+    if (line === "/body/") { inBody = false; continue; }
+
     if (line.endsWith("/")) {
       const name = line.slice(1,-1);
-      if (name==="head"){inHead=false;continue;}
       const entry = DICTIONARY[name];
-      if (entry && entry.type!=="zen-grid" && entry.type!=="zen-card") html.push(`</${entry.tag||"div"}>`);
+      if (entry && entry.type !== "zen-grid" && entry.type !== "zen-card") {
+        const closeTag = `</${entry.tag||"div"}>`;
+        if (inBody) bodyContent.push(closeTag);
+        else html.push(closeTag);
+      }
       continue;
     }
 
@@ -239,7 +250,7 @@ function compileZenith() {
     const entry = DICTIONARY[name];
     if (!entry) continue;
 
-    let text="", attrs=[], styles=[];
+    let text = "", attrs = [], styles = [];
 
     for (let p of parts){
       if(p.startsWith('"')) text=p.slice(1,-1);
@@ -250,10 +261,7 @@ function compileZenith() {
       }
     }
 
-    if(name==="head"){inHead=true;continue;}
-    if(name==="title"&&!inHead){html.push(`<h1>${text}</h1>`); continue;}
-
-    let className="";
+    let className = "";
     if(styles.length){
       className=`z-${++classId}`;
       let rules=[];
@@ -270,10 +278,13 @@ function compileZenith() {
       attrs.push(`class="${className}"`);
     }
 
-    if(entry.type==="zen-grid"){ const g=`z-${++classId}`; css.push(`.${g}{display:grid}`); html.push(`<div class="${g}">`); continue; }
-    if(entry.type==="zen-card"){ const c=`z-${++classId}`; css.push(`.${c}{background:#0d1117;border:1px solid #30363d;border-radius:12px;padding:24px;}`); html.push(`<div class="${c}">`); continue; }
+    let compiledLine = "";
+    if(entry.type==="zen-grid"){ const g=`z-${++classId}`; css.push(`.${g}{display:grid}`); compiledLine=`<div class="${g}">`; }
+    else if(entry.type==="zen-card"){ const c=`z-${++classId}`; css.push(`.${c}{background:#0d1117;border:1px solid #30363d;border-radius:12px;padding:24px;}`); compiledLine=`<div class="${c}">`; }
+    else compiledLine = entry.type==="self"? `<${entry.tag}${attrs.length? " "+attrs.join(" "):""}>` : `<${entry.tag}${attrs.length? " "+attrs.join(" "):""}>${text}`;
 
-    html.push(entry.type==="self"? `<${entry.tag}${attrs.length? " "+attrs.join(" "):""}>` : `<${entry.tag}${attrs.length? " "+attrs.join(" "):""}>${text}`);
+    if(inBody) bodyContent.push(compiledLine);
+    else html.push(compiledLine);
   }
 
   lastHTML = `
@@ -284,7 +295,7 @@ function compileZenith() {
 <title>${pageTitle}</title>
 </head>
 <body>
-${html.join("\n")}
+${bodyContent.join("\n")}
 </body>
 </html>
 `;
@@ -295,7 +306,7 @@ ${html.join("\n")}
 }
 
 /* ============================
-   PREVIEW (FIXED)
+   PREVIEW
 =============================== */
 function previewZenith(){
   if(!lastHTML) compileZenith();
