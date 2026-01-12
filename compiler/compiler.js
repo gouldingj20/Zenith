@@ -10,15 +10,17 @@ Promise.all([
   grammar = gram;
 });
 
-function compileZenithToHTML(code) {
-  if (!dictionary || !grammar) return '';
+// Compiler: outputs { html, css, warnings }
+function compileZenithToHTMLandCSS(code) {
+  if (!dictionary || !grammar) return { html: '', css: '', warnings: [] };
 
   const lines = code.split('\n');
-  let output = '';
+  let html = '';
+  let css = '';
   let warnings = [];
   let stack = [];
+  const generatedClasses = new Set();
 
-  // Determine indentation
   function getIndent(line) {
     return line.match(/^(\s*)/)[1].length;
   }
@@ -32,7 +34,7 @@ function compileZenithToHTML(code) {
     const indent = getIndent(line);
     line = line.trim();
 
-    // Pop stack if indentation decreased
+    // Pop stack if indentation decreases
     while (stack.length && indent < stack[stack.length - 1].indent) {
       stack.pop();
     }
@@ -45,7 +47,7 @@ function compileZenithToHTML(code) {
 
       if (!def) {
         warnings.push(`Line ${lineNum}: Unknown element '${name}'`);
-        output += `<!-- Unknown element: ${name} -->\n`;
+        html += `<!-- Unknown element: ${name} -->\n`;
         return;
       }
 
@@ -55,34 +57,30 @@ function compileZenithToHTML(code) {
         warnings.push(`Line ${lineNum}: '${name}' should not be inside '${parent}'`);
       }
 
-      // Generate HTML
       const tag = def.tag || 'div';
-      const style = def.style ? ` style="${def.style}"` : '';
+      const classAttr = (def.type === 'layout' || def.type === 'component') ? ` class="${name}"` : '';
+      html += tag === 'img'
+        ? `<img src="${content}" alt="" />\n`
+        : `<${tag}${classAttr}>${content}</${tag}>\n`;
 
-      if (tag === 'img') {
-        output += `<img src="${content}" alt=""${style} />\n`;
-      } else if (tag === 'a') {
-        output += `<a href="#">${content}</a>\n`;
-      } else {
-        output += `<${tag}${style}>${content}</${tag}>\n`;
+      // Add CSS from dictionary if not already added
+      if (def.style && !generatedClasses.has(name)) {
+        if (classAttr) css += `.${name} { ${def.style} }\n`;
+        else css += `${tag} { ${def.style} }\n`;
+        generatedClasses.add(name);
       }
 
-      // Push containers onto stack for nested checking
+      // Push containers to stack
       if (def.type === 'layout' || def.type === 'section' || def.type === 'component') {
         stack.push({ name, indent });
       }
 
     } else {
-      // Plain text
-      output += `<p>${line}</p>\n`;
+      html += `<p>${line}</p>\n`;
     }
 
     previousIndent = indent;
   });
 
-  if (warnings.length) {
-    output += '\n<!-- WARNINGS -->\n' + warnings.map(w => `<!-- ${w} -->`).join('\n') + '\n';
-  }
-
-  return output;
+  return { html, css, warnings };
 }
