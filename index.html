@@ -40,18 +40,114 @@
 
 <div id="warnings"></div>
 
-<script src="zenith-compiler.js"></script>
 <script>
-const input = document.getElementById('zenithInput');
-const htmlOut = document.getElementById('htmlOutput');
-const cssOut = document.getElementById('cssOutput');
-const warningsDiv = document.getElementById('warnings');
+// --- Embedded dictionary ---
+const dictionary = {
+  "stack": { "tag": "div", "type": "layout", "style": "display:flex;flex-direction:column;gap:40px" },
+  "grid": { "tag": "div", "type": "layout", "style": "display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:32px" },
+  "column": { "tag": "div", "type": "layout", "style": "display:flex;flex-direction:column;gap:16px" },
+  "title": { "tag": "h1", "type": "text" },
+  "subtitle": { "tag": "h2", "type": "text" },
+  "text": { "tag": "p", "type": "text" },
+  "step": { "tag": "p", "type": "text", "style": "font-weight:500" },
+  "button": { "tag": "button", "type": "interactive", "style": "padding:14px 28px;border-radius:999px;border:none;cursor:pointer" },
+  "link": { "tag": "a", "type": "interactive" },
+  "image": { "tag": "img", "type": "media" },
+  "card": { "tag": "div", "type": "component", "style": "padding:32px;border-radius:16px;background:white;box-shadow:0 20px 40px rgba(0,0,0,0.06)" },
+  "section": { "tag": "section", "type": "section" }
+};
 
-input.addEventListener('input', () => {
-  const { html, css, warnings } = compileZenithToHTMLandCSS(input.value);
-  htmlOut.textContent = html;
-  cssOut.textContent = css;
-  warningsDiv.textContent = warnings.length ? warnings.join('\n') : '';
+// --- Embedded grammar ---
+const grammar = {
+  "symbols": { "/": "Start element", "\"\"": "Wrap string content" },
+  "nesting_rules": {
+    "section": ["stack", "grid", "title", "text", "button", "card"],
+    "stack": ["title", "text", "button", "stack", "grid", "card"],
+    "grid": ["column", "card", "stack", "text", "title"],
+    "column": ["stack", "text", "button", "title"],
+    "card": ["title", "text", "button", "image"]
+  }
+};
+
+// --- Compiler ---
+function compileZenithToHTMLandCSS(code) {
+  const lines = code.split('\n');
+  let html = '';
+  let css = '';
+  let warnings = [];
+  let stack = [];
+  const generatedClasses = new Set();
+
+  function getIndent(line) {
+    return line.match(/^(\s*)/)[1].length;
+  }
+
+  lines.forEach((line, index) => {
+    const lineNum = index + 1;
+    if (!line.trim()) return;
+
+    const indent = getIndent(line);
+    line = line.trim();
+
+    while (stack.length && indent < stack[stack.length - 1].indent) {
+      stack.pop();
+    }
+
+    if (line.startsWith('/')) {
+      const [el, ...rest] = line.split(' ');
+      const name = el.slice(1);
+      const content = rest.join(' ').replace(/^"|"$/g, '');
+      const def = dictionary[name];
+
+      if (!def) {
+        warnings.push(`Line ${lineNum}: Unknown element '${name}'`);
+        html += `<!-- Unknown element: ${name} -->\n`;
+        return;
+      }
+
+      const parent = stack.length ? stack[stack.length - 1].name : null;
+      if (parent && grammar.nesting_rules[parent] && !grammar.nesting_rules[parent].includes(name)) {
+        warnings.push(`Line ${lineNum}: '${name}' should not be inside '${parent}'`);
+      }
+
+      const tag = def.tag || 'div';
+      const classAttr = (def.type === 'layout' || def.type === 'component') ? ` class="${name}"` : '';
+
+      html += tag === 'img'
+        ? `<img src="${content}" alt="" />\n`
+        : `<${tag}${classAttr}>${content}</${tag}>\n`;
+
+      if (def.style && !generatedClasses.has(name)) {
+        if (classAttr) css += `.${name} { ${def.style} }\n`;
+        else css += `${tag} { ${def.style} }\n`;
+        generatedClasses.add(name);
+      }
+
+      if (def.type === 'layout' || def.type === 'section' || def.type === 'component') {
+        stack.push({ name, indent });
+      }
+
+    } else {
+      html += `<p>${line}</p>\n`;
+    }
+  });
+
+  return { html, css, warnings };
+}
+
+// --- DOM binding ---
+window.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('zenithInput');
+  const htmlOut = document.getElementById('htmlOutput');
+  const cssOut = document.getElementById('cssOutput');
+  const warningsDiv = document.getElementById('warnings');
+
+  input.addEventListener('input', () => {
+    const { html, css, warnings } = compileZenithToHTMLandCSS(input.value);
+    htmlOut.textContent = html;
+    cssOut.textContent = css;
+    warningsDiv.textContent = warnings.length ? warnings.join('\n') : '';
+  });
 });
 </script>
 
