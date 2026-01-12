@@ -4,22 +4,99 @@
 <meta charset="UTF-8">
 <title>Zenith Playground</title>
 <style>
-body { font-family: sans-serif; padding: 30px; background: #f9f9f9; color: #111; }
-h1 { margin-bottom: 20px; }
-textarea { width:100%; height:25vh; font-family: monospace; font-size:16px; padding:12px; border-radius:8px; border:1px solid #ccc; margin-bottom:10px; box-sizing:border-box; background:#fff; }
-button { padding:10px 20px; border-radius:8px; border:none; background:#333; color:white; cursor:pointer; margin-bottom:10px; }
-button:hover { background:#555; }
-pre { width:100%; min-height:20vh; background:#f5f5f5; border:1px solid #ccc; border-radius:8px; padding:12px; box-sizing:border-box; overflow:auto; white-space:pre-wrap; font-family: monospace; font-size:16px; margin-bottom:20px; }
-#divider { text-align:center; font-weight:bold; margin:10px 0; }
-#warnings { color:red; font-family: monospace; margin-top:10px; }
-label { font-weight:bold; display:block; margin-top:15px; margin-bottom:5px; }
+/* --- Modern Codey Playground Look --- */
+body {
+  font-family: 'Fira Code', monospace, monospace;
+  background: #1e1e2f;
+  color: #f5f5f5;
+  padding: 30px;
+}
+h1 { margin-bottom: 20px; color:#00ffd5; font-size:2rem; }
 
-/* Preview modal */
-#previewModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999; align-items:center; justify-content:center; }
-#previewContent { width:90%; height:90%; background:#fff; border-radius:10px; overflow:hidden; position:relative; display:flex; flex-direction:column; }
-#previewIframe { flex:1; border:none; width:100%; height:100%; }
-#closePreview { position:absolute; top:10px; right:10px; background:#333; color:#fff; border:none; border-radius:5px; padding:8px 12px; cursor:pointer; z-index:10; }
-#closePreview:hover { background:#555; }
+textarea {
+  width:100%;
+  height:25vh;
+  font-family: 'Fira Code', monospace;
+  font-size:16px;
+  padding:12px;
+  border-radius:8px;
+  border:1px solid #333;
+  margin-bottom:10px;
+  background:#282a36;
+  color:#f8f8f2;
+  resize: vertical;
+}
+
+button {
+  padding:10px 20px;
+  border-radius:8px;
+  border:none;
+  background:#6272a4;
+  color:white;
+  cursor:pointer;
+  margin-bottom:10px;
+  transition:0.2s;
+}
+button:hover { background:#50fa7b; color:#111; }
+
+pre {
+  width:100%;
+  min-height:20vh;
+  background:#282a36;
+  border:1px solid #44475a;
+  border-radius:8px;
+  padding:12px;
+  box-sizing:border-box;
+  overflow:auto;
+  white-space:pre-wrap;
+  font-family: 'Fira Code', monospace;
+  font-size:15px;
+  color:#f8f8f2;
+  margin-bottom:20px;
+}
+
+#divider { text-align:center; font-weight:bold; margin:10px 0; color:#6272a4; }
+
+label { font-weight:bold; display:block; margin-top:15px; margin-bottom:5px; color:#50fa7b; }
+
+#warnings { color:#ff5555; font-family: 'Fira Code', monospace; margin-top:10px; }
+
+/* --- Preview Modal --- */
+#previewModal {
+  display:none;
+  position:fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background:rgba(0,0,0,0.8);
+  z-index:9999;
+  align-items:center;
+  justify-content:center;
+}
+#previewContent {
+  width:90%; height:90%;
+  background:#f8f8f2;
+  border-radius:10px;
+  overflow:hidden;
+  position:relative;
+  display:flex;
+  flex-direction:column;
+}
+#previewIframe {
+  flex:1; border:none; width:100%; height:100%;
+}
+#closePreview {
+  position:absolute;
+  top:10px;
+  right:10px;
+  background:#6272a4;
+  color:white;
+  border:none;
+  border-radius:5px;
+  padding:8px 12px;
+  cursor:pointer;
+  z-index:10;
+}
+#closePreview:hover { background:#50fa7b; color:#111; }
 </style>
 </head>
 <body>
@@ -51,7 +128,7 @@ label { font-weight:bold; display:block; margin-top:15px; margin-bottom:5px; }
 </div>
 
 <script>
-// --- Dictionary ---
+// --- Zenith Dictionary ---
 const dictionary = {
   "zenith": {type:"meta"},
   "page": {type:"meta"},
@@ -74,7 +151,7 @@ const dictionary = {
   "section": {tag:"section", type:"section"}
 };
 
-// --- Compiler ---
+// --- Zenith Compiler ---
 function compileZenith(code){
   const lines = code.replace(/\t/g,'  ').split("\n");
   let htmlLang = "en";
@@ -149,7 +226,13 @@ function compileZenith(code){
         }
 
         if(tag==="img") bodyLines.push(`<img src="${textContent}" alt="" />`);
-        else bodyLines.push(`<${tag}${classAttr}${inlineClass?` class="${inlineClass}"`:''}>${textContent}${children?'\n'+children+'\n':''}</${tag}>`);
+        else {
+          const classString = (classAttr && inlineClass) ? `${name} ${inlineClass}` :
+                              (classAttr) ? name :
+                              (inlineClass) ? inlineClass : "";
+          const classAttrHTML = classString ? ` class="${classString}"` : "";
+          bodyLines.push(`<${tag}${classAttrHTML}>${textContent}${children?'\n'+children+'\n':''}</${tag}>`);
+        }
 
         if(def.style && !generatedClasses.has(name)){
           if(classAttr) cssLines.push(`.${name} { ${def.style}; }`);
@@ -192,8 +275,8 @@ window.addEventListener("DOMContentLoaded",()=>{
 
   compileBtn.addEventListener("click",()=>{
     const {html, css, warnings} = compileZenith(input.value);
-    htmlOut.textContent = html;
-    cssOut.textContent = css;
+    htmlOut.textContent = html; // HTML only
+    cssOut.textContent = css;   // CSS only
     warningsDiv.textContent = warnings.length ? warnings.join("\n") : "";
     lastCompiled = {html, css};
   });
@@ -203,28 +286,12 @@ window.addEventListener("DOMContentLoaded",()=>{
       warningsDiv.textContent = "Compile first!";
       return;
     }
+
+    // iframe content: full HTML with CSS applied, but clean HTML
     const iframeContent = `
       <!DOCTYPE html>
       <html lang="en">
       <head>
         <meta charset="UTF-8">
         <title>Preview</title>
-        <style>${lastCompiled.css}</style>
-      </head>
-      <body>
-        ${lastCompiled.html.replace(/^<!DOCTYPE html>\n<html[^>]*>\n<head>.*<\/head>\n<body>\n?/s,'').replace(/\n<\/body>\n<\/html>$/,'')}
-      </body>
-      </html>
-    `;
-    previewIframe.srcdoc = iframeContent;
-    previewModal.style.display = "flex";
-  });
-
-  closePreview.addEventListener("click",()=>{
-    previewModal.style.display = "none";
-  });
-});
-</script>
-
-</body>
-</html>
+        <style
