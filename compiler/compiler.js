@@ -1,33 +1,47 @@
 let dictionary = {};
+let grammar = {};
 
-// Load your dictionary JSON
-fetch('zenith/dictionary/dictionary.json')
-  .then(res => res.json())
-  .then(data => {
-    dictionary = data;
-  });
+// Load dictionary and grammar
+Promise.all([
+  fetch('zenith/dictionary/dictionary.json').then(res => res.json()),
+  fetch('zenith/grammar/grammar.json').then(res => res.json())
+]).then(([dict, gram]) => {
+  dictionary = dict;
+  grammar = gram;
+});
 
-// Function to compile Zenith code to raw HTML
 function compileZenithToHTML(code) {
-  if (!dictionary || Object.keys(dictionary).length === 0) return '';
+  if (!dictionary || !grammar) return '';
 
   const lines = code.split('\n');
   let output = '';
+  let warnings = [];
+  let parentStack = [];
 
-  lines.forEach(line => {
+  lines.forEach((line, index) => {
+    const lineNum = index + 1;
     line = line.trim();
     if (!line) return;
 
     if (line.startsWith('/')) {
       const [el, ...rest] = line.split(' ');
+      const name = el.slice(1);
       const content = rest.join(' ').replace(/^"|"$/g, '');
-      const def = dictionary[el.slice(1)];
+      const def = dictionary[name];
 
       if (!def) {
-        output += `<!-- Unknown element: ${el.slice(1)} -->\n`;
+        warnings.push(`Line ${lineNum}: Unknown element '${name}'`);
+        output += `<!-- Unknown element: ${name} -->\n`;
         return;
       }
 
+      // Check grammar nesting rules
+      const parent = parentStack[parentStack.length - 1];
+      if (parent && grammar.nesting_rules[parent] && !grammar.nesting_rules[parent].includes(name)) {
+        warnings.push(`Line ${lineNum}: '${name}' should not be inside '${parent}'`);
+      }
+
+      // Add element to output
       const tag = def.tag || 'div';
       const style = def.style ? ` style="${def.style}"` : '';
 
@@ -39,10 +53,22 @@ function compileZenithToHTML(code) {
         output += `<${tag}${style}>${content}</${tag}>\n`;
       }
 
+      // Push container elements to parent stack
+      if (def.type === 'layout' || def.type === 'section' || def.type === 'component') {
+        parentStack.push(name);
+      }
+
     } else {
       output += `<p>${line}</p>\n`;
     }
+
+    // Pop from stack if indentation decreases (optional: advanced)
+    // For now, just keep it simple
   });
+
+  if (warnings.length) {
+    output += '\n<!-- WARNINGS -->\n' + warnings.map(w => `<!-- ${w} -->`).join('\n') + '\n';
+  }
 
   return output;
 }
