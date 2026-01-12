@@ -3,247 +3,284 @@
 <head>
 <meta charset="UTF-8">
 <title>Zenith Playground</title>
+
 <style>
-/* Hacky hacker neon vibe */
+/* ===== Code-friendly UI ===== */
 body {
-  font-family: 'Fira Code', monospace;
-  background: #0f0f0f;
-  color: #00ff99;
-  padding: 30px;
+  background:#0c0c0c;
+  color:#00ff99;
+  font-family: "Fira Code", monospace;
+  padding:24px;
 }
-h1 { color:#ff00ff; margin-bottom:15px; }
-textarea {
+
+h1 {
+  color:#ff00ff;
+  margin-bottom:12px;
+}
+
+textarea, pre {
   width:100%;
-  height:25vh;
-  font-family:'Fira Code', monospace;
-  font-size:16px;
   background:#111;
   color:#00ff99;
   border:1px solid #00ff99;
   border-radius:6px;
-  padding:10px;
-  resize: vertical;
+  padding:12px;
+  font-family:"Fira Code", monospace;
+  font-size:14px;
+  white-space:pre-wrap;
 }
+
+textarea {
+  height:220px;
+  resize:vertical;
+}
+
+pre {
+  min-height:160px;
+}
+
 button {
-  padding:10px 20px;
-  border:none;
-  border-radius:6px;
   background:#ff00ff;
-  color:#0f0f0f;
+  color:#000;
+  border:none;
+  padding:10px 18px;
+  margin:8px 6px 16px 0;
+  border-radius:6px;
   cursor:pointer;
-  margin-right:10px;
-  margin-bottom:10px;
   font-weight:bold;
 }
-button:hover { background:#00ff99; color:#111; }
-pre {
-  width:100%;
-  min-height:20vh;
-  background:#111;
-  border:1px solid #00ff99;
-  border-radius:6px;
-  padding:10px;
-  overflow:auto;
-  white-space:pre-wrap;
-  font-family:'Fira Code', monospace;
-  color:#00ff99;
-  margin-bottom:20px;
-}
-#divider { text-align:center; margin:15px 0; color:#ff00ff; font-weight:bold; }
-#warnings { color:#ff5555; font-family:'Fira Code', monospace; margin-top:10px; }
 
-/* Preview Modal */
-#previewModal {
+button:hover {
+  background:#00ff99;
+}
+
+.divider {
+  margin:14px 0;
+  text-align:center;
+  color:#ff00ff;
+}
+
+#warnings {
+  color:#ff5555;
+  margin-top:10px;
+}
+
+/* Preview */
+#preview {
   display:none;
   position:fixed;
-  top:0; left:0;
-  width:100%; height:100%;
+  inset:0;
   background:rgba(0,0,0,0.95);
-  z-index:9999;
-  align-items:center;
-  justify-content:center;
+  z-index:999;
 }
-#previewContent {
-  width:90%; height:90%;
-  background:#f8f8f2;
-  border-radius:10px;
-  overflow:hidden;
-  position:relative;
-  display:flex;
-  flex-direction:column;
+
+#preview iframe {
+  width:90%;
+  height:90%;
+  margin:3%;
+  background:#fff;
+  border-radius:8px;
 }
-#previewIframe {
-  flex:1; border:none; width:100%; height:100%;
-}
+
 #closePreview {
   position:absolute;
-  top:10px;
-  right:10px;
+  top:14px;
+  right:18px;
   background:#ff00ff;
-  color:#111;
-  border:none;
-  border-radius:5px;
-  padding:8px 12px;
-  cursor:pointer;
-  z-index:10;
 }
-#closePreview:hover { background:#00ff99; color:#111; }
 </style>
 </head>
+
 <body>
 
 <h1>Zenith Playground</h1>
 
-<label for="zenithInput">Zenith Code:</label>
-<textarea id="zenithInput" placeholder='Type here...'></textarea>
+<textarea id="input" placeholder='
+/zen
+/lang "en"
 
-<button id="compileBtn">Compile</button>
-<button id="previewBtn">Preview</button>
+/head
+  /charset
+  /page "Zenith Demo"
+/head/
 
-<label>HTML Output:</label>
-<pre id="htmlOutput"></pre>
+/header
+  /title "Hello World" serif:bold:#ccc:center
+/header/
+'></textarea>
 
-<div id="divider">----- CSS -----</div>
+<button onclick="compileZenith()">Compile</button>
+<button onclick="previewZenith()">Preview</button>
 
-<label>CSS Output:</label>
-<pre id="cssOutput"></pre>
+<div class="divider">HTML OUTPUT</div>
+<pre id="htmlOut"></pre>
+
+<div class="divider">CSS OUTPUT</div>
+<pre id="cssOut"></pre>
 
 <div id="warnings"></div>
 
-<div id="previewModal">
-  <div id="previewContent">
-    <button id="closePreview">Close</button>
-    <iframe id="previewIframe"></iframe>
-  </div>
+<div id="preview">
+  <button id="closePreview" onclick="closePreview()">Close</button>
+  <iframe id="frame"></iframe>
 </div>
 
 <script>
-const dictionary = {
-  "zenith": {type:"meta"},
-  "page": {type:"meta"},
-  "header": {tag:"header", type:"section"},
-  "hero": {tag:"section", type:"section"},
-  "main": {tag:"main", type:"section"},
-  "footer": {tag:"footer", type:"section"},
-  "stack": {tag:"div", type:"layout", style:"display:flex;flex-direction:column;gap:40px"},
-  "grid": {tag:"div", type:"layout", style:"display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:32px"},
-  "column": {tag:"div", type:"layout", style:"display:flex;flex-direction:column;gap:16px"},
-  "actions": {tag:"div", type:"layout", style:"display:flex;gap:16px;flex-wrap:wrap"},
-  "title": {tag:"h1", type:"text"},
-  "subtitle": {tag:"h2", type:"text"},
-  "text": {tag:"p", type:"text"},
-  "step": {tag:"p", type:"text", style:"font-weight:500"},
-  "button": {tag:"button", type:"interactive", style:"padding:14px 28px;border-radius:999px;border:none;cursor:pointer"},
-  "link": {tag:"a", type:"interactive"},
-  "image": {tag:"img", type:"media"},
-  "card": {tag:"div", type:"component", style:"padding:32px;border-radius:16px;background:white;box-shadow:0 20px 40px rgba(0,0,0,0.06)"},
-  "section": {tag:"section", type:"section"}
+/* ===== ZENITH DICTIONARY (EMBEDDED) ===== */
+const DICTIONARY = {
+  zen: { type: "doctype" },
+  lang: { type: "html-attr", attr: "lang" },
+
+  head: { type: "block", tag: "head" },
+  charset: { type: "meta", output: '<meta charset="UTF-8">' },
+  page: { type: "meta", tag: "title" },
+
+  header: { type: "block", tag: "header" },
+  main: { type: "block", tag: "main" },
+  footer: { type: "block", tag: "footer" },
+
+  title: {
+    type: "text",
+    tag: "h1",
+    styles: ["font","weight","color","align"]
+  },
+
+  text: {
+    type: "text",
+    tag: "p",
+    styles: ["font","weight","color","align"]
+  }
 };
 
-// Compiler now separates HTML & CSS properly
-function compileZenith(code){
-  const lines = code.split("\n");
-  let htmlLang="en", pageTitle="Zenith Page";
-  let cssLines=[];
-  let warnings=[];
+/* ===== COMPILER ===== */
+function compileZenith() {
+  const lines = document.getElementById("input").value.split("\n");
+  let htmlBody = [];
+  let css = [];
+  let warnings = [];
 
-  function parse(i=0,parentIndent=0){
-    let bodyLines=[];
-    while(i<lines.length){
-      let line=lines[i];
-      if(!line.trim()){ i++; continue; }
-      let indent=line.match(/^(\s*)/)[1].length;
-      if(indent<parentIndent) break;
-      line=line.trim();
-      if(line.startsWith("/")){
-        const [el,...rest]=line.split(" ");
-        const name=el.slice(1);
-        let contentRaw=rest.join(" ");
-        let def=dictionary[name];
-        if(!def){ warnings.push(`Line ${i+1}: Unknown element '${name}'`); bodyLines.push(`<!-- Unknown element: ${name} -->`); i++; continue; }
+  let lang = "en";
+  let title = "Zenith Page";
+  let stack = [];
 
-        if(def.type==="meta"){
-          if(name==="zenith"){ const langMatch=rest.find(r=>/^[a-z]{2}$/i.test(r)); if(langMatch) htmlLang=langMatch.toLowerCase(); i++; continue;}
-          if(name==="page"){ pageTitle=contentRaw.replace(/^["“”]|["“”]$/g,''); i++; continue;}
-        }
-
-        const tag=def.tag||'div';
-        let textContent=contentRaw.replace(/^"|"$/g,'');
-        let children="";
-        if(def.type==="layout"||def.type==="section"||def.type==="component"){
-          const childResult=parse(i+1,indent+1);
-          children=childResult.bodyLines.join("\n");
-          i=childResult.next-1;
-        }
-        if(tag==="img") bodyLines.push(`<img src="${textContent}" alt="">`);
-        else bodyLines.push(`<${tag}>${textContent}${children?'\n'+children+'\n':''}</${tag}>`);
-        // Inline style goes only to CSS
-        let styleParts=contentRaw.match(/"[^"]*"\s*(.*)/);
-        if(styleParts && styleParts[1].trim()!==""){
-          let styleStr=styleParts[1].trim().split(":");
-          let cssRules=[];
-          if(styleStr[0]) cssRules.push(`font-family:${styleStr[0]}`);
-          if(styleStr[1]) cssRules.push(`font-weight:${styleStr[1]}`);
-          if(styleStr[2]) cssRules.push(`color:${styleStr[2]}`);
-          if(styleStr[3]){ let a=styleStr[3].toLowerCase(); if(a==="centre") a="center"; cssRules.push(`text-align:${a}`);}
-          if(cssRules.length>0) cssLines.push(`${tag}:not([class]) { ${cssRules.join("; ")}; }`);
-        }
-        if(def.style) cssLines.push(`${tag} { ${def.style}; }`);
-
-      } else {
-        bodyLines.push(`<p>${line}</p>`);
-      }
-      i++;
-    }
-    return {bodyLines,next:i};
+  function open(tag) {
+    htmlBody.push("  ".repeat(stack.length) + `<${tag}>`);
+    stack.push(tag);
   }
 
-  const bodyResult=parse(0);
-  const finalHTML=`<!DOCTYPE html>\n<html lang="${htmlLang}">\n<head>\n<meta charset="UTF-8">\n<title>${pageTitle}</title>\n</head>\n<body>\n${bodyResult.bodyLines.join("\n")}\n</body>\n</html>`;
-  return {html:finalHTML, css:cssLines.join("\n"), warnings};
-}
+  function close(tag) {
+    const last = stack.pop();
+    if (last !== tag) warnings.push(`Mismatched close: ${tag}`);
+    htmlBody.push("  ".repeat(stack.length) + `</${tag}>`);
+  }
 
-// DOM
-window.addEventListener("DOMContentLoaded",()=>{
-  const input=document.getElementById("zenithInput");
-  const htmlOut=document.getElementById("htmlOutput");
-  const cssOut=document.getElementById("cssOutput");
-  const warningsDiv=document.getElementById("warnings");
-  const compileBtn=document.getElementById("compileBtn");
-  const previewBtn=document.getElementById("previewBtn");
-  const previewModal=document.getElementById("previewModal");
-  const previewIframe=document.getElementById("previewIframe");
-  const closePreview=document.getElementById("closePreview");
+  for (let raw of lines) {
+    let line = raw.trim();
+    if (!line) continue;
 
-  let lastCompiled={html:'', css:''};
+    /* DOCTYPE */
+    if (line === "/zen") continue;
 
-  compileBtn.addEventListener("click",()=>{
-    const {html, css, warnings}=compileZenith(input.value);
-    htmlOut.textContent=html; // clean HTML
-    cssOut.textContent=css;   // CSS only
-    warningsDiv.textContent=warnings.length?warnings.join("\n"):"";
-    lastCompiled={html, css};
-  });
+    /* LANG */
+    if (line.startsWith("/lang")) {
+      lang = line.match(/"(.+?)"/)?.[1] || lang;
+      continue;
+    }
 
-  previewBtn.addEventListener("click",()=>{
-    if(!lastCompiled.html){ warningsDiv.textContent="Compile first!"; return; }
-    const iframeContent=`<!DOCTYPE html>
-<html lang="en">
+    /* BLOCK OPEN */
+    if (line.startsWith("/") && !line.endsWith("/")) {
+      const name = line.slice(1);
+      if (DICTIONARY[name]?.type === "block") {
+        open(DICTIONARY[name].tag);
+        continue;
+      }
+    }
+
+    /* BLOCK CLOSE */
+    if (line.startsWith("/") && line.endsWith("/")) {
+      const name = line.slice(1, -1);
+      if (DICTIONARY[name]?.type === "block") {
+        close(DICTIONARY[name].tag);
+        continue;
+      }
+    }
+
+    /* META */
+    if (line === "/charset") {
+      htmlBody.push("  ".repeat(stack.length) + DICTIONARY.charset.output);
+      continue;
+    }
+
+    if (line.startsWith("/page")) {
+      title = line.match(/"(.+?)"/)?.[1] || title;
+      continue;
+    }
+
+    /* TEXT ELEMENTS */
+    if (line.startsWith("/title")) {
+      const match = line.match(/"(.+?)"\s*(.*)/);
+      const text = match?.[1] || "";
+      const style = match?.[2] || "";
+
+      htmlBody.push("  ".repeat(stack.length) + `<h1>${text}</h1>`);
+
+      if (style) {
+        const p = style.split(":");
+        let rules = [];
+        if (p[0]) rules.push(`font-family:${p[0]}`);
+        if (p[1]) rules.push(`font-weight:${p[1]}`);
+        if (p[2]) rules.push(`color:${p[2]}`);
+        if (p[3]) rules.push(`text-align:${p[3] === "centre" ? "center" : p[3]}`);
+        css.push(`h1 { ${rules.join("; ")}; }`);
+      }
+      continue;
+    }
+
+    warnings.push("Unknown line: " + line);
+  }
+
+  const finalHTML = `<!DOCTYPE html>
+<html lang="${lang}">
 <head>
-<meta charset="UTF-8">
-<title>Preview</title>
-<style>${lastCompiled.css}</style>
+  <meta charset="UTF-8">
+  <title>${title}</title>
 </head>
 <body>
-${lastCompiled.html.replace(/^<!DOCTYPE html>\n<html[^>]*>\n<head>.*<\/head>\n<body>\n?/s,'').replace(/\n<\/body>\n<\/html>$/,'')}
+${htmlBody.join("\n")}
 </body>
 </html>`;
-    previewIframe.srcdoc=iframeContent;
-    previewModal.style.display="flex";
-  });
 
-  closePreview.addEventListener("click",()=>{ previewModal.style.display="none"; });
-});
+  document.getElementById("htmlOut").textContent = finalHTML;
+  document.getElementById("cssOut").textContent = css.join("\n");
+  document.getElementById("warnings").textContent = warnings.join("\n");
+}
+
+/* ===== PREVIEW ===== */
+function previewZenith() {
+  const html = document.getElementById("htmlOut").textContent;
+  const css = document.getElementById("cssOut").textContent;
+
+  const bodyOnly = html
+    .replace(/^[\s\S]*?<body>/, "")
+    .replace(/<\/body>[\s\S]*$/, "");
+
+  document.getElementById("frame").srcdoc = `
+<!DOCTYPE html>
+<html>
+<head>
+<style>${css}</style>
+</head>
+<body>
+${bodyOnly}
+</body>
+</html>`;
+
+  document.getElementById("preview").style.display = "block";
+}
+
+function closePreview() {
+  document.getElementById("preview").style.display = "none";
+}
 </script>
 
 </body>
