@@ -136,71 +136,15 @@ const frame    = document.getElementById("frame");
 
 /* ============================
    ZENITH V1 — GRAMMAR
-===============================
+=============================== */
 
-Rules:
-
-1. Line structure:
-   - All commands start with /
-   - Example: /tagName "text" key:value key2:"complex value"
-
-2. Blocks:
-   - /tag opens a block
-   - /tag/ closes a block
-   - Example:
-     /header
-     /title "Hello World"
-     /header/
-
-3. Self-closing tags:
-   - Defined in dictionary as type:"self"
-   - Do not need a closing /tag/
-
-4. Text:
-   - Must be wrapped in quotes: "Some text here"
-   - Only one text node per line is allowed
-
-5. Attributes:
-   - key:value or key:"value"
-   - Boolean attributes are allowed (no value needed)
-
-6. Style shortcuts (Zenith-specific):
-   - font:font-family
-   - weight:font-weight
-   - color:text color
-   - align:text-align
-   - size:font-size (pixels)
-   - gap:gap (for grid/flex)
-   - cols:number of grid columns
-   - These are automatically converted into CSS classes
-
-7. Special directives:
-   - /zen → Doctype
-   - /lang "en" → Language for <html>
-   - /charset → <meta charset="UTF-8">
-   - /page "Title" → Sets <title>
-
-8. Zen-only blocks:
-   - /grid → grid container
-   - /card → card container
-
-Notes:
-- Nesting must be proper: open /tag, then close /tag/
-- Any unknown tag is ignored
-- /title outside /head → automatically becomes <h1>
-- All CSS is separated from HTML and generated into classes
-
-===============================
-*/
-
-
+/* ...Your grammar notes here... */
 
 /* ============================
    ZENITH V1 — DICTIONARY
 =============================== */
 const DICTIONARY = {
   zen: { type: "doctype" },
-
   html: { type: "block", tag: "html" },
   head: { type: "block", tag: "head" },
   body: { type: "block", tag: "body" },
@@ -253,53 +197,39 @@ const DICTIONARY = {
   br: { type: "self", tag: "br" },
   hr: { type: "self", tag: "hr" },
 
-  /* ZEN-ONLY */
   grid: { type: "zen-grid" },
   card: { type: "zen-card" }
 };
 
 /* ============================
-   ZENITH V1 — COMPILER (FIXED)
+   ZENITH V1 — COMPILER
 =============================== */
 let lastHTML = "";
 let lastCSS = "";
 
 function compileZenith() {
   const lines = zenInput.value.split("\n");
-
   let html = [];
   let css = [];
-  let stack = [];
-
   let classId = 0;
   let lang = "en";
   let pageTitle = "Zenith Page";
-  let inHead = false; // track head context
+  let inHead = false;
 
   for (let raw of lines) {
     const line = raw.trim();
     if (!line) continue;
-
     if (line === "/zen") continue;
 
-    if (line.startsWith("/lang")) {
-      lang = line.match(/"(.+?)"/)?.[1] || lang;
-      continue;
-    }
-
+    if (line.startsWith("/lang")) { lang = line.match(/"(.+?)"/)?.[1] || lang; continue; }
     if (line === "/charset") continue;
+    if (line.startsWith("/page")) { pageTitle = line.match(/"(.+?)"/)?.[1] || pageTitle; continue; }
 
-    if (line.startsWith("/page")) {
-      pageTitle = line.match(/"(.+?)"/)?.[1] || pageTitle;
-      continue;
-    }
-
-    // closing tags
     if (line.endsWith("/")) {
-      const name = line.slice(1, -1);
-      if (name === "head") { inHead = false; continue; }
+      const name = line.slice(1,-1);
+      if (name==="head"){inHead=false;continue;}
       const entry = DICTIONARY[name];
-      if (entry && entry.type !== "zen-grid" && entry.type !== "zen-card") html.push(`</${entry.tag || "div"}>`);
+      if (entry && entry.type!=="zen-grid" && entry.type!=="zen-card") html.push(`</${entry.tag||"div"}>`);
       continue;
     }
 
@@ -309,72 +239,41 @@ function compileZenith() {
     const entry = DICTIONARY[name];
     if (!entry) continue;
 
-    let text = "";
-    let attrs = [];
-    let styles = [];
+    let text="", attrs=[], styles=[];
 
-    for (let p of parts) {
-      if (p.startsWith("\"")) text = p.slice(1, -1);
-      else if (p.includes(":")) {
-        const [k, v] = p.split(":");
-        if (["font","weight","color","align","size","gap","cols"].includes(k))
-          styles.push([k, v]);
+    for (let p of parts){
+      if(p.startsWith('"')) text=p.slice(1,-1);
+      else if(p.includes(":")){
+        const [k,v]=p.split(":");
+        if(["font","weight","color","align","size","gap","cols"].includes(k)) styles.push([k,v]);
         else attrs.push(`${k}="${v}"`);
       }
     }
 
-    // track head
-    if (name === "head") { inHead = true; continue; }
+    if(name==="head"){inHead=true;continue;}
+    if(name==="title"&&!inHead){html.push(`<h1>${text}</h1>`); continue;}
 
-    // contextual title handling
-    if (name === "title" && !inHead) {
-      html.push(`<h1>${text}</h1>`);
-      continue;
-    }
-
-    let className = "";
-    if (styles.length) {
-      className = `z-${++classId}`;
-      let rules = [];
-
-      for (let [k, v] of styles) {
-        if (k === "font") rules.push(`font-family:${v}`);
-        if (k === "weight") rules.push(`font-weight:${v}`);
-        if (k === "color") rules.push(`color:${v}`);
-        if (k === "align") rules.push(`text-align:${v}`);
-        if (k === "size") rules.push(`font-size:${v}px`);
-        if (k === "gap") rules.push(`gap:${v}px`);
-        if (k === "cols") rules.push(`grid-template-columns:repeat(${v},1fr)`);
+    let className="";
+    if(styles.length){
+      className=`z-${++classId}`;
+      let rules=[];
+      for(let [k,v] of styles){
+        if(k==="font") rules.push(`font-family:${v}`);
+        if(k==="weight") rules.push(`font-weight:${v}`);
+        if(k==="color") rules.push(`color:${v}`);
+        if(k==="align") rules.push(`text-align:${v}`);
+        if(k==="size") rules.push(`font-size:${v}px`);
+        if(k==="gap") rules.push(`gap:${v}px`);
+        if(k==="cols") rules.push(`grid-template-columns:repeat(${v},1fr)`);
       }
-
       css.push(`.${className}{${rules.join(";")}}`);
       attrs.push(`class="${className}"`);
     }
 
-    if (entry.type === "zen-grid") {
-      const gridClass = `z-${++classId}`;
-      css.push(`.${gridClass}{display:grid}`);
-      html.push(`<div class="${gridClass}">`);
-      continue;
-    }
+    if(entry.type==="zen-grid"){ const g=`z-${++classId}`; css.push(`.${g}{display:grid}`); html.push(`<div class="${g}">`); continue; }
+    if(entry.type==="zen-card"){ const c=`z-${++classId}`; css.push(`.${c}{background:#0d1117;border:1px solid #30363d;border-radius:12px;padding:24px;}`); html.push(`<div class="${c}">`); continue; }
 
-    if (entry.type === "zen-card") {
-      const cardClass = `z-${++classId}`;
-      css.push(`.${cardClass}{
-        background:#0d1117;
-        border:1px solid #30363d;
-        border-radius:12px;
-        padding:24px;
-      }`);
-      html.push(`<div class="${cardClass}">`);
-      continue;
-    }
-
-    html.push(
-      entry.type === "self"
-        ? `<${entry.tag}${attrs.length ? " " + attrs.join(" ") : ""}>`
-        : `<${entry.tag}${attrs.length ? " " + attrs.join(" ") : ""}>${text}`
-    );
+    html.push(entry.type==="self"? `<${entry.tag}${attrs.length? " "+attrs.join(" "):""}>` : `<${entry.tag}${attrs.length? " "+attrs.join(" "):""}>${text}`);
   }
 
   lastHTML = `
@@ -390,29 +289,34 @@ ${html.join("\n")}
 </html>
 `;
 
-  lastCSS = css.join("\n") || "/* no styles */";
-
+  lastCSS = css.join("\n")||"/* no styles */";
   htmlOut.textContent = lastHTML;
   cssOut.textContent = lastCSS;
 }
 
 /* ============================
-   PREVIEW
+   PREVIEW (FIXED)
 =============================== */
-function previewZenith() {
-  if (!lastHTML) compileZenith();
+function previewZenith(){
+  if(!lastHTML) compileZenith();
+  const baseStyles = `
+    body { margin:0; padding:24px; background:#0b0f14; color:#c9d1d9; font-family:"Fira Code", monospace; }
+    h1,h2,h3,h4,h5,h6 { margin:0; }
+    p { margin:8px 0; }
+    button { cursor:pointer; }
+  `;
   frame.srcdoc = `
 <!DOCTYPE html>
 <html>
-<head><style>${lastCSS}</style></head>
+<head>
+<style>${baseStyles}\n${lastCSS}</style>
+</head>
 <body>${lastHTML.match(/<body>([\s\S]*)<\/body>/)[1]}</body>
 </html>`;
-  document.getElementById("preview").style.display = "block";
+  document.getElementById("preview").style.display="block";
 }
 
-function closePreview() {
-  document.getElementById("preview").style.display = "none";
-}
+function closePreview(){document.getElementById("preview").style.display="none";}
 </script>
 
 </body>
