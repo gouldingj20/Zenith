@@ -139,11 +139,10 @@ const cssOut   = document.getElementById("cssOut");
 const frame    = document.getElementById("frame");
 
 /* ============================
-   ZENITH V1 — DICTIONARY
+   ZENITH DICTIONARY
 =============================== */
 const DICTIONARY = {
   zen: { type: "doctype" },
-
   html: { type: "block", tag: "html" },
   head: { type: "block", tag: "head" },
   body: { type: "block", tag: "body" },
@@ -201,7 +200,7 @@ const DICTIONARY = {
 };
 
 /* ============================
-   ZENITH V1 — COMPILER
+   COMPILER
 =============================== */
 let lastHTML = "";
 let lastCSS = "";
@@ -210,13 +209,13 @@ function compileZenith() {
   const lines = zenInput.value.split("\n");
   let html = [];
   let css = [];
+  let bodyContent = [];
   let classId = 0;
   let lang = "en";
   let pageTitle = "Zenith Page";
 
   let inHead = false;
   let inBody = false;
-  let bodyContent = [];
 
   for (let raw of lines) {
     const line = raw.trim();
@@ -229,30 +228,29 @@ function compileZenith() {
 
     if (line === "/head") { inHead = true; continue; }
     if (line === "/head/") { inHead = false; continue; }
-
     if (line === "/body") { inBody = true; continue; }
     if (line === "/body/") { inBody = false; continue; }
 
     if (line.endsWith("/")) {
       const name = line.slice(1,-1);
       const entry = DICTIONARY[name];
-      if (entry && entry.type !== "zen-grid" && entry.type !== "zen-card") {
-        const closeTag = `</${entry.tag||"div"}>`;
-        if (inBody) bodyContent.push(closeTag);
-        else html.push(closeTag);
+      if(entry && entry.type!=="zen-grid" && entry.type!=="zen-card") {
+        const tagClose = `</${entry.tag||"div"}>`;
+        if(inBody) bodyContent.push(tagClose);
+        else html.push(tagClose);
       }
       continue;
     }
 
     const parts = line.slice(1).match(/(?:[^\s"]+|"[^"]*")+/g);
-    if (!parts) continue;
+    if(!parts) continue;
     const name = parts.shift();
     const entry = DICTIONARY[name];
-    if (!entry) continue;
+    if(!entry) continue;
 
-    let text = "", attrs = [], styles = [];
+    let text="", attrs=[], styles=[];
 
-    for (let p of parts){
+    for(let p of parts){
       if(p.startsWith('"')) text=p.slice(1,-1);
       else if(p.includes(":")){
         const [k,v]=p.split(":");
@@ -261,7 +259,7 @@ function compileZenith() {
       }
     }
 
-    let className = "";
+    let className="";
     if(styles.length){
       className=`z-${++classId}`;
       let rules=[];
@@ -278,7 +276,7 @@ function compileZenith() {
       attrs.push(`class="${className}"`);
     }
 
-    let compiledLine = "";
+    let compiledLine="";
     if(entry.type==="zen-grid"){ const g=`z-${++classId}`; css.push(`.${g}{display:grid}`); compiledLine=`<div class="${g}">`; }
     else if(entry.type==="zen-card"){ const c=`z-${++classId}`; css.push(`.${c}{background:#0d1117;border:1px solid #30363d;border-radius:12px;padding:24px;}`); compiledLine=`<div class="${c}">`; }
     else compiledLine = entry.type==="self"? `<${entry.tag}${attrs.length? " "+attrs.join(" "):""}>` : `<${entry.tag}${attrs.length? " "+attrs.join(" "):""}>${text}`;
@@ -298,25 +296,22 @@ function compileZenith() {
 ${bodyContent.join("\n")}
 </body>
 </html>
-`;
+  `;
 
-  lastCSS = css.join("\n")||"/* no styles */";
+  lastCSS = css.join("\n") || "/* no styles */";
   htmlOut.textContent = lastHTML;
   cssOut.textContent = lastCSS;
 }
 
-
 /* ============================
    PREVIEW
-============================ */
-  function previewZenith() {
-  if (!lastHTML) compileZenith();
+=============================== */
+function previewZenith(){
+  if(!lastHTML) compileZenith();
 
-  // Extract only what's inside <body>…</body>
   const bodyMatch = lastHTML.match(/<body>([\s\S]*)<\/body>/);
   const bodyContent = bodyMatch ? bodyMatch[1] : "";
 
-  // Base UI styles for preview
   const baseStyles = `
     body { margin:0; padding:24px; background:#0b0f14; color:#c9d1d9; font-family:"Fira Code", monospace; }
     h1,h2,h3,h4,h5,h6 { margin:0; }
@@ -330,19 +325,16 @@ ${bodyContent.join("\n")}
 <head>
 <meta charset="UTF-8">
 <title>Zenith Preview</title>
-<style>
-${baseStyles}
-${lastCSS}
-</style>
+<style>${baseStyles}\n${lastCSS}</style>
 </head>
-<body>
-${bodyContent}
-</body>
+<body>${bodyContent}</body>
 </html>
   `;
 
-  document.getElementById("preview").style.display = "block";
+  document.getElementById("preview").style.display="block";
 }
+
+function closePreview(){ document.getElementById("preview").style.display="none"; }
 </script>
 
 </body>
