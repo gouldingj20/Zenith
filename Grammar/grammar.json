@@ -1,0 +1,31 @@
+{
+  "meta": {
+    "name": "Zenith Grammar",
+    "version": "1.0.0",
+    "description": "Grammar rules for writing Zenith code in a human-first, indentation-based style"
+  },
+
+  "symbols": {
+    "/": "Starts a new element. Must be followed by a valid element name from the dictionary.",
+    "\"\"": "Wraps string content for text-based elements.",
+    "::": "Optional inline content or attribute override for elements."
+  },
+
+  "nesting_rules": {
+    "section": ["stack", "grid", "column", "card", "feature", "cta", "text", "image"],
+    "stack": ["stack", "grid", "column", "text", "button", "link", "icon", "image"],
+    "grid": ["stack", "grid", "column", "card", "feature", "image"],
+    "column": ["stack", "text", "image", "button", "link"],
+    "card": ["text", "icon", "image", "feature"],
+    "cta": ["title", "text", "button", "link"],
+    "nav": ["link", "button"]
+  },
+
+  "notes": [
+    "All elements start with '/' followed by a valid element name from the dictionary.",
+    "Text content must be wrapped in quotes.",
+    "Nesting is determined by indentation only; braces '{}' are not used.",
+    ":: is optional inline content or attribute override for elements.",
+    "Visual dividers are not used; structure is determined solely by elements and indentation."
+  ]
+}
