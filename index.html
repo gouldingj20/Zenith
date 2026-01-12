@@ -59,7 +59,6 @@ const dictionary = {
 
 // --- Embedded grammar ---
 const grammar = {
-  "symbols": { "/": "Start element", "\"\"": "Wrap string content" },
   "nesting_rules": {
     "section": ["stack", "grid", "title", "text", "button", "card"],
     "stack": ["title", "text", "button", "stack", "grid", "card"],
@@ -75,67 +74,76 @@ function compileZenithToHTMLandCSS(code) {
   let html = '';
   let css = '';
   let warnings = [];
-  let stack = [];
   const generatedClasses = new Set();
 
-  function getIndent(line) {
-    return line.match(/^(\s*)/)[1].length;
+  function parseLines(startIndex, parentIndent = 0) {
+    let localHtml = '';
+    let i = startIndex;
+
+    while (i < lines.length) {
+      let line = lines[i];
+      if (!line.trim()) { i++; continue; }
+
+      const indent = line.match(/^(\s*)/)[1].length;
+      if (indent < parentIndent) break; // end of this block
+
+      line = line.trim();
+
+      if (line.startsWith('/')) {
+        const [el, ...rest] = line.split(' ');
+        const name = el.slice(1);
+        const content = rest.join(' ').replace(/^"|"$/g, '');
+        const def = dictionary[name];
+
+        if (!def) {
+          warnings.push(`Line ${i+1}: Unknown element '${name}'`);
+          localHtml += `<!-- Unknown element: ${name} -->\n`;
+          i++; continue;
+        }
+
+        // Check grammar
+        const parent = null; // optional: could track parent for warnings
+        if (parent && grammar.nesting_rules[parent] && !grammar.nesting_rules[parent].includes(name)) {
+          warnings.push(`Line ${i+1}: '${name}' should not be inside '${parent}'`);
+        }
+
+        const tag = def.tag || 'div';
+        const classAttr = (def.type === 'layout' || def.type === 'component') ? ` class="${name}"` : '';
+        let childrenHtml = '';
+
+        // Recursively parse children if this is a container
+        if (def.type === 'layout' || def.type === 'section' || def.type === 'component') {
+          const result = parseLines(i+1, indent+1);
+          childrenHtml = result.html;
+          i = result.nextIndex - 1;
+        }
+
+        if (tag === 'img') localHtml += `<img src="${content}" alt="" />\n`;
+        else localHtml += `<${tag}${classAttr}>${content}${childrenHtml}</${tag}>\n`;
+
+        // Add CSS once
+        if (def.style && !generatedClasses.has(name)) {
+          if (classAttr) css += `.${name} { ${def.style} }\n`;
+          else css += `${tag} { ${def.style} }\n`;
+          generatedClasses.add(name);
+        }
+
+      } else {
+        localHtml += `<p>${line}</p>\n`;
+      }
+
+      i++;
+    }
+
+    return { html: localHtml, nextIndex: i };
   }
 
-  lines.forEach((line, index) => {
-    const lineNum = index + 1;
-    if (!line.trim()) return;
-
-    const indent = getIndent(line);
-    line = line.trim();
-
-    while (stack.length && indent < stack[stack.length - 1].indent) {
-      stack.pop();
-    }
-
-    if (line.startsWith('/')) {
-      const [el, ...rest] = line.split(' ');
-      const name = el.slice(1);
-      const content = rest.join(' ').replace(/^"|"$/g, '');
-      const def = dictionary[name];
-
-      if (!def) {
-        warnings.push(`Line ${lineNum}: Unknown element '${name}'`);
-        html += `<!-- Unknown element: ${name} -->\n`;
-        return;
-      }
-
-      const parent = stack.length ? stack[stack.length - 1].name : null;
-      if (parent && grammar.nesting_rules[parent] && !grammar.nesting_rules[parent].includes(name)) {
-        warnings.push(`Line ${lineNum}: '${name}' should not be inside '${parent}'`);
-      }
-
-      const tag = def.tag || 'div';
-      const classAttr = (def.type === 'layout' || def.type === 'component') ? ` class="${name}"` : '';
-
-      html += tag === 'img'
-        ? `<img src="${content}" alt="" />\n`
-        : `<${tag}${classAttr}>${content}</${tag}>\n`;
-
-      if (def.style && !generatedClasses.has(name)) {
-        if (classAttr) css += `.${name} { ${def.style} }\n`;
-        else css += `${tag} { ${def.style} }\n`;
-        generatedClasses.add(name);
-      }
-
-      if (def.type === 'layout' || def.type === 'section' || def.type === 'component') {
-        stack.push({ name, indent });
-      }
-
-    } else {
-      html += `<p>${line}</p>\n`;
-    }
-  });
-
+  const result = parseLines(0);
+  html = result.html;
   return { html, css, warnings };
 }
 
-// --- DOM binding ---
+// --- DOM ---
 window.addEventListener('DOMContentLoaded', () => {
   const input = document.getElementById('zenithInput');
   const htmlOut = document.getElementById('htmlOutput');
