@@ -104,7 +104,7 @@ function compileZenithToHTMLandCSS(code) {
           i++; continue;
         }
 
-        // If meta, output as comment only
+        // Meta lines: show as comment only
         if (def.type === "meta") {
           localHtml += `<!-- ${name} ${content} -->\n`;
           i++; continue;
@@ -114,11 +114,11 @@ function compileZenithToHTMLandCSS(code) {
         const classAttr = (def.type === 'layout' || def.type === 'component') ? ` class="${name}"` : '';
         let childrenHtml = '';
 
-        // Recursively parse children if this is a container
+        // Recursively parse children
         if (def.type === 'layout' || def.type === 'section' || def.type === 'component') {
           const result = parseLines(i+1, indent+1);
           childrenHtml = result.html;
-          i = result.nextIndex - 1;
+          i = result.nextIndex - 1; // correctly advance
         }
 
         if (tag === 'img') localHtml += `<img src="${content}" alt="" />\n`;
