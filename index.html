@@ -60,7 +60,7 @@ const dictionary = {
 
 // --- Compiler ---
 function compileZenith(code){
-  const lines = code.replace(/\t/g,'  ').split("\n");
+  const lines = code.replace(/\t/g,'  ').split("\n"); // tabs -> spaces
   let htmlLang = "en";
   let pageTitle = "Zenith Page";
   let cssLines = [];
@@ -102,21 +102,25 @@ function compileZenith(code){
         const tag = def.tag || 'div';
         const classAttr = (def.type==="layout"||def.type==="component")?` class="${name}"`:"";
 
-        // --- Inline style parsing ---
-        let content = contentRaw.match(/^"([^"]*)"(.*)$/);
-        let textContent = content ? content[1] : contentRaw;
-        let styleInfo = content ? content[2].trim() : "";
+        // --- Inline style parsing (fixed to allow space after quotes) ---
+        let contentMatch = contentRaw.match(/^"([^"]*)"\s*(.*)$/);
+        let textContent = contentMatch ? contentMatch[1] : contentRaw;
+        let styleInfo = contentMatch ? contentMatch[2].trim() : "";
 
         let inlineClass = "";
         if(styleInfo){
           inlineCounter++;
           inlineClass = `inline-${inlineCounter}`;
           let cssProps = [];
-          let parts = styleInfo.split(":"); // e.g. Serif:bold:#F5f5f5:left
+          let parts = styleInfo.split(":"); // Font:bold:#F5f5f5:center
           if(parts[0]) cssProps.push(`font-family:${parts[0]}`);
           if(parts[1]) cssProps.push(`font-weight:${parts[1]}`);
           if(parts[2]) cssProps.push(`color:${parts[2]}`);
-          if(parts[3]) cssProps.push(`text-align:${parts[3]}`);
+          if(parts[3]){
+            let align = parts[3].toLowerCase();
+            if(align === "centre") align = "center"; // accept British spelling
+            cssProps.push(`text-align:${align}`);
+          }
           cssLines.push(`.${inlineClass} { ${cssProps.join("; ")} }`);
         }
 
