@@ -48,8 +48,12 @@ const cssOut = document.getElementById('cssOutput');
 const warningsDiv = document.getElementById('warnings');
 
 input.addEventListener('input', () => {
+  if (!ready) return; // Wait until dictionary & grammar are loaded
   const { html, css, warnings } = compileZenithToHTMLandCSS(input.value);
-
+  htmlOut.textContent = html;
+  cssOut.textContent = css;
+  warningsDiv.textContent = warnings.length ? warnings.join('\n') : '';
+});
   htmlOut.textContent = html;
   cssOut.textContent = css;
   warningsDiv.textContent = warnings.length ? warnings.join('\n') : '';
