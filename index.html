@@ -203,14 +203,13 @@ window.addEventListener("DOMContentLoaded",()=>{
       warningsDiv.textContent = "Compile first!";
       return;
     }
-    // --- Build proper iframe srcdoc ---
     const iframeContent = `
       <!DOCTYPE html>
       <html lang="en">
       <head>
         <meta charset="UTF-8">
-        <style>${lastCompiled.css}</style>
         <title>Preview</title>
+        <style>${lastCompiled.css}</style>
       </head>
       <body>
         ${lastCompiled.html.replace(/^<!DOCTYPE html>\n<html[^>]*>\n<head>.*<\/head>\n<body>\n?/s,'').replace(/\n<\/body>\n<\/html>$/,'')}
