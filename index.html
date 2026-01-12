@@ -60,7 +60,7 @@ const dictionary = {
 
 // --- Compiler ---
 function compileZenith(code){
-  const lines = code.replace(/\t/g,'  ').split("\n"); // tabs -> spaces
+  const lines = code.replace(/\t/g,'  ').split("\n");
   let htmlLang = "en";
   let pageTitle = "Zenith Page";
   let cssLines = [];
@@ -102,7 +102,7 @@ function compileZenith(code){
         const tag = def.tag || 'div';
         const classAttr = (def.type==="layout"||def.type==="component")?` class="${name}"`:"";
 
-        // --- Inline style parsing (fixed to allow space after quotes) ---
+        // --- Inline style parsing ---
         let contentMatch = contentRaw.match(/^"([^"]*)"\s*(.*)$/);
         let textContent = contentMatch ? contentMatch[1] : contentRaw;
         let styleInfo = contentMatch ? contentMatch[2].trim() : "";
@@ -112,16 +112,17 @@ function compileZenith(code){
           inlineCounter++;
           inlineClass = `inline-${inlineCounter}`;
           let cssProps = [];
-          let parts = styleInfo.split(":"); // Font:bold:#F5f5f5:center
+          let parts = styleInfo.split(":");
           if(parts[0]) cssProps.push(`font-family:${parts[0]}`);
           if(parts[1]) cssProps.push(`font-weight:${parts[1]}`);
           if(parts[2]) cssProps.push(`color:${parts[2]}`);
           if(parts[3]){
             let align = parts[3].toLowerCase();
-            if(align === "centre") align = "center"; // accept British spelling
+            if(align === "centre") align = "center";
             cssProps.push(`text-align:${align}`);
           }
-          cssLines.push(`.${inlineClass} { ${cssProps.join("; ")} }`);
+          // --- Add final semicolon to each CSS line ---
+          cssLines.push(`.${inlineClass} { ${cssProps.join("; ")}; }`);
         }
 
         // --- Children ---
@@ -136,8 +137,8 @@ function compileZenith(code){
         else bodyLines.push(`<${tag}${classAttr}${inlineClass?` class="${inlineClass}"`:''}>${textContent}${children?'\n'+children+'\n':''}</${tag}>`);
 
         if(def.style && !generatedClasses.has(name)){
-          if(classAttr) cssLines.push(`.${name} { ${def.style} }`);
-          else cssLines.push(`${tag} { ${def.style} }`);
+          if(classAttr) cssLines.push(`.${name} { ${def.style}; }`);
+          else cssLines.push(`${tag} { ${def.style}; }`);
           generatedClasses.add(name);
         }
 
