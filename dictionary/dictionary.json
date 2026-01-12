@@ -1,153 +1,214 @@
-{
-  "__meta__": {
-    "name": "Zenith",
-    "version": "1.0.0",
-    "description": "Human-first web language"
-  },
+/* ============================
+   ZENITH V1 — GRAMMAR
+===============================
+- Lines start with /
+- /tag opens
+- /tag/ closes
+- Text must be in "quotes"
+- Attributes use key:value
+- Complex values use key:"value"
+- Boolean attributes allowed
+- Styles are shortcuts:
+  font weight color align size
+- CSS NEVER appears in HTML
+=============================== */
 
-  /* ======================
-     PAGE META
-  ====================== */
 
-  "zenith": { "type": "meta" },
-  "lang":   { "type": "meta" },
-  "page":   { "type": "meta" },
+/* ============================
+   ZENITH V1 — DICTIONARY
+=============================== */
 
-  /* ======================
-     ROOT SECTIONS
-  ====================== */
+const DICTIONARY = {
+  // document
+  zen: { type: "doctype" },
+  html: { type: "block", tag: "html" },
+  head: { type: "block", tag: "head" },
+  body: { type: "block", tag: "body" },
+  title: { type: "block", tag: "title" },
+  meta: { type: "self", tag: "meta" },
+  link: { type: "self", tag: "link" },
+  script: { type: "block", tag: "script" },
+  style: { type: "block", tag: "style" },
 
-  "header": { "tag": "header", "type": "section" },
-  "hero":   { "tag": "section", "type": "section", "id": "hero" },
-  "main":   { "tag": "main",    "type": "section" },
-  "footer": { "tag": "footer",  "type": "section" },
+  // sectioning
+  header: { type: "block", tag: "header" },
+  nav: { type: "block", tag: "nav" },
+  main: { type: "block", tag: "main" },
+  section: { type: "block", tag: "section" },
+  article: { type: "block", tag: "article" },
+  aside: { type: "block", tag: "aside" },
+  footer: { type: "block", tag: "footer" },
 
-  "section": { "tag": "section", "type": "container", "title": true },
+  // text
+  h1: { type: "block", tag: "h1" },
+  h2: { type: "block", tag: "h2" },
+  h3: { type: "block", tag: "h3" },
+  h4: { type: "block", tag: "h4" },
+  h5: { type: "block", tag: "h5" },
+  h6: { type: "block", tag: "h6" },
+  p: { type: "block", tag: "p" },
+  span: { type: "inline", tag: "span" },
+  strong: { type: "inline", tag: "strong" },
+  em: { type: "inline", tag: "em" },
+  small: { type: "inline", tag: "small" },
 
-  /* ======================
-     LAYOUT SYSTEM
-  ====================== */
+  // lists
+  ul: { type: "block", tag: "ul" },
+  ol: { type: "block", tag: "ol" },
+  li: { type: "block", tag: "li" },
 
-  "stack": {
-    "tag": "div",
-    "type": "layout",
-    "style": "display:flex;flex-direction:column;gap:40px"
-  },
+  // media
+  img: { type: "self", tag: "img" },
+  video: { type: "block", tag: "video" },
+  audio: { type: "block", tag: "audio" },
+  source: { type: "self", tag: "source" },
 
-  "grid": {
-    "tag": "div",
-    "type": "layout",
-    "style": "display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:32px"
-  },
+  // tables
+  table: { type: "block", tag: "table" },
+  thead: { type: "block", tag: "thead" },
+  tbody: { type: "block", tag: "tbody" },
+  tr: { type: "block", tag: "tr" },
+  th: { type: "block", tag: "th" },
+  td: { type: "block", tag: "td" },
 
-  "column": {
-    "tag": "div",
-    "type": "layout",
-    "style": "display:flex;flex-direction:column;gap:16px"
-  },
+  // forms
+  form: { type: "block", tag: "form" },
+  input: { type: "self", tag: "input" },
+  textarea: { type: "block", tag: "textarea" },
+  button: { type: "block", tag: "button" },
+  label: { type: "block", tag: "label" },
+  select: { type: "block", tag: "select" },
+  option: { type: "block", tag: "option" },
 
-  "actions": {
-    "tag": "div",
-    "type": "layout",
-    "style": "display:flex;gap:16px;flex-wrap:wrap"
-  },
+  // misc
+  div: { type: "block", tag: "div" },
+  a: { type: "block", tag: "a" },
+  iframe: { type: "block", tag: "iframe" },
+  br: { type: "self", tag: "br" },
+  hr: { type: "self", tag: "hr" }
+};
 
-  /* ======================
-     CONTENT / TEXT
-  ====================== */
 
-  "title": {
-    "tag": "h1",
-    "type": "text"
-  },
+/* ============================
+   ZENITH V1 — COMPILER
+=============================== */
 
-  "subtitle": {
-    "tag": "h2",
-    "type": "text"
-  },
+let lastHTML = "";
+let lastCSS = "";
 
-  "text": {
-    "tag": "p",
-    "type": "text"
-  },
+function compileZenith() {
+  const input = zenInput.value.split("\n");
 
-  "small": {
-    "tag": "small",
-    "type": "text"
-  },
+  let html = [];
+  let css = [];
+  let stack = [];
+  let classId = 0;
 
-  "step": {
-    "tag": "p",
-    "type": "text",
-    "style": "font-weight:500"
-  },
+  for (let raw of input) {
+    const line = raw.trim();
+    if (!line) continue;
 
-  "icon": {
-    "tag": "span",
-    "type": "inline",
-    "style": "font-size:2rem"
-  },
+    // DOCTYPE
+    if (line === "/zen") {
+      html.push("<!DOCTYPE html>");
+      continue;
+    }
 
-  /* ======================
-     INTERACTION
-  ====================== */
+    // CLOSE BLOCK
+    if (line.endsWith("/")) {
+      const name = line.slice(1, -1);
+      const entry = DICTIONARY[name];
+      if (entry) {
+        html.push(`</${entry.tag}>`);
+        stack.pop();
+      }
+      continue;
+    }
 
-  "button": {
-    "tag": "button",
-    "type": "interactive",
-    "style": "padding:14px 28px;border-radius:999px;border:none;cursor:pointer"
-  },
+    if (!line.startsWith("/")) continue;
 
-  "link": {
-    "tag": "a",
-    "type": "interactive"
-  },
+    const parts = line.slice(1).match(/(?:[^\s"]+|"[^"]*")+/g);
+    const name = parts.shift();
+    const entry = DICTIONARY[name];
+    if (!entry) continue;
 
-  /* ======================
-     MEDIA
-  ====================== */
+    let text = "";
+    let attrs = [];
+    let styles = [];
 
-  "image": {
-    "tag": "img",
-    "type": "media",
-    "selfClosing": true
-  },
+    for (let p of parts) {
+      if (p.startsWith("\"")) {
+        text = p.slice(1, -1);
+      } else if (p.includes(":")) {
+        const [k, vRaw] = p.split(":");
+        const v = vRaw.replace(/"/g, "");
+        if (["color", "align", "size", "weight", "font"].includes(k)) {
+          styles.push([k, v]);
+        } else {
+          attrs.push(`${k}="${v}"`);
+        }
+      } else {
+        attrs.push(p);
+      }
+    }
 
-  /* ======================
-     COMPONENTS
-  ====================== */
+    let className = "";
+    if (styles.length) {
+      className = `z-${++classId}`;
+      let rules = [];
+      for (let [k, v] of styles) {
+        if (k === "align") rules.push(`text-align:${v}`);
+        if (k === "color") rules.push(`color:${v}`);
+        if (k === "size") rules.push(`font-size:${v}px`);
+        if (k === "weight") rules.push(`font-weight:${v}`);
+        if (k === "font") rules.push(`font-family:${v}`);
+      }
+      css.push(`.${className} { ${rules.join("; ")} }`);
+    }
 
-  "card": {
-    "tag": "div",
-    "type": "component",
-    "style": "padding:32px;border-radius:16px;background:white;box-shadow:0 20px 40px rgba(0,0,0,0.06)"
-  },
+    if (className) attrs.push(`class="${className}"`);
 
-  "cta": {
-    "tag": "div",
-    "type": "component",
-    "style": "padding:80px 40px;text-align:center;background:linear-gradient(135deg,#111,#333);color:white;border-radius:24px"
-  },
-
-  "feature": {
-    "tag": "div",
-    "type": "component",
-    "style": "padding:24px"
-  },
-
-  "nav": {
-    "tag": "nav",
-    "type": "component",
-    "style": "display:flex;gap:24px;align-items:center"
-  },
-
-  /* ======================
-     UTILITIES
-  ====================== */
-
-  "divider": {
-    "tag": "hr",
-    "type": "utility",
-    "selfClosing": true
+    if (entry.type === "self") {
+      html.push(`<${entry.tag}${attrs.length ? " " + attrs.join(" ") : ""}>`);
+    } else {
+      html.push(`<${entry.tag}${attrs.length ? " " + attrs.join(" ") : ""}>${text}`);
+      stack.push(entry.tag);
+    }
   }
+
+  while (stack.length) {
+    html.push(`</${stack.pop()}>`);
+  }
+
+  lastHTML = html.join("\n");
+  lastCSS = css.join("\n") || "/* no styles */";
+
+  htmlOut.textContent = lastHTML;
+  cssOut.textContent = lastCSS;
+}
+
+
+/* ============================
+   ZENITH V1 — PREVIEW
+=============================== */
+
+function previewZenith() {
+  if (!lastHTML) compileZenith();
+
+  const bodyMatch = lastHTML.match(/<body[^>]*>([\s\S]*)<\/body>/);
+  const body = bodyMatch ? bodyMatch[1] : lastHTML;
+
+  preview.srcdoc = `
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+${lastCSS}
+</style>
+</head>
+<body>
+${body}
+</body>
+</html>
+`;
 }
