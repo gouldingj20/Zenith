@@ -60,12 +60,13 @@ const dictionary = {
 
 // --- Compiler ---
 function compileZenith(code){
-  const lines = code.replace(/\t/g,'  ').split("\n"); // replace tabs with 2 spaces
+  const lines = code.replace(/\t/g,'  ').split("\n");
   let htmlLang = "en";
   let pageTitle = "Zenith Page";
   let cssLines = [];
   let warnings = [];
   let generatedClasses = new Set();
+  let inlineCounter = 0;
 
   function parse(i=0, parentIndent=0){
     let bodyLines = [];
@@ -79,8 +80,8 @@ function compileZenith(code){
       if(line.startsWith("/")){
         const [el,...rest] = line.split(' ');
         const name = el.slice(1);
-        let content = rest.join(" ").replace(/^["“”]|["“”]$/g,'');
-        const def = dictionary[name];
+        let contentRaw = rest.join(" ");
+        let def = dictionary[name];
 
         if(!def){
           warnings.push(`Line ${i+1}: Unknown element '${name}'`);
@@ -88,27 +89,47 @@ function compileZenith(code){
           i++; continue;
         }
 
+        // --- Meta ---
         if(def.type==="meta"){
           if(name==="zenith"){
             const langMatch = rest.find(r=>/^[a-z]{2}$/i.test(r));
             if(langMatch) htmlLang = langMatch.toLowerCase();
             i++; continue;
           }
-          if(name==="page"){ pageTitle = content || "Zenith Page"; i++; continue; }
+          if(name==="page"){ pageTitle = contentRaw.replace(/^["“”]|["“”]$/g,''); i++; continue; }
         }
 
         const tag = def.tag || 'div';
         const classAttr = (def.type==="layout"||def.type==="component")?` class="${name}"`:"";
-        let children = "";
 
+        // --- Inline style parsing ---
+        let content = contentRaw.match(/^"([^"]*)"(.*)$/);
+        let textContent = content ? content[1] : contentRaw;
+        let styleInfo = content ? content[2].trim() : "";
+
+        let inlineClass = "";
+        if(styleInfo){
+          inlineCounter++;
+          inlineClass = `inline-${inlineCounter}`;
+          let cssProps = [];
+          let parts = styleInfo.split(":"); // e.g. Serif:bold:#F5f5f5:left
+          if(parts[0]) cssProps.push(`font-family:${parts[0]}`);
+          if(parts[1]) cssProps.push(`font-weight:${parts[1]}`);
+          if(parts[2]) cssProps.push(`color:${parts[2]}`);
+          if(parts[3]) cssProps.push(`text-align:${parts[3]}`);
+          cssLines.push(`.${inlineClass} { ${cssProps.join("; ")} }`);
+        }
+
+        // --- Children ---
+        let children = "";
         if(def.type==="layout"||def.type==="section"||def.type==="component"){
           const childResult = parse(i+1, indent+1);
           children = childResult.bodyLines.join('\n');
           i = childResult.next-1;
         }
 
-        if(tag==="img") bodyLines.push(`<img src="${content}" alt="" />`);
-        else bodyLines.push(`<${tag}${classAttr}>${content}${children?'\n'+children+'\n':''}</${tag}>`);
+        if(tag==="img") bodyLines.push(`<img src="${textContent}" alt="" />`);
+        else bodyLines.push(`<${tag}${classAttr}${inlineClass?` class="${inlineClass}"`:''}>${textContent}${children?'\n'+children+'\n':''}</${tag}>`);
 
         if(def.style && !generatedClasses.has(name)){
           if(classAttr) cssLines.push(`.${name} { ${def.style} }`);
