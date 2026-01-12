@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Zenith Playground</title>
+<style>
+  body { font-family: sans-serif; display: flex; gap: 20px; padding: 20px; }
+  textarea, pre { width: 45%; height: 90vh; font-family: monospace; font-size: 16px; padding: 10px; box-sizing: border-box; }
+  pre { background: #f5f5f5; border: 1px solid #ccc; overflow: auto; white-space: pre-wrap; }
+  #warnings { color: red; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<textarea id="zenithInput" placeholder="Write Zenith code here..."></textarea>
+<div>
+  <pre id="outputCode"></pre>
+  <div id="warnings"></div>
+</div>
+
+<script src="zenith-compiler.js"></script>
+<script>
+const input = document.getElementById('zenithInput');
+const output = document.getElementById('outputCode');
+const warningsDiv = document.getElementById('warnings');
+
+input.addEventListener('input', () => {
+  const html = compileZenithToHTML(input.value);
+  output.textContent = html;
+
+  // Extract warnings from output comments
+  const warningMatches = html.match(/<!-- WARNINGS -->([\s\S]*)/);
+  if (warningMatches) {
+    warningsDiv.textContent = warningMatches[1].replace(/<!--|-->/g, '').trim();
+  } else {
+    warningsDiv.textContent = '';
+  }
+});
+</script>
+
+</body>
+</html>
