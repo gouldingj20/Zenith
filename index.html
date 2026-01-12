@@ -305,29 +305,44 @@ ${bodyContent.join("\n")}
   cssOut.textContent = lastCSS;
 }
 
+
 /* ============================
    PREVIEW
-=============================== */
-function previewZenith(){
-  if(!lastHTML) compileZenith();
+============================ */
+  function previewZenith() {
+  if (!lastHTML) compileZenith();
+
+  // Extract only what's inside <body>…</body>
+  const bodyMatch = lastHTML.match(/<body>([\s\S]*)<\/body>/);
+  const bodyContent = bodyMatch ? bodyMatch[1] : "";
+
+  // Base UI styles for preview
   const baseStyles = `
     body { margin:0; padding:24px; background:#0b0f14; color:#c9d1d9; font-family:"Fira Code", monospace; }
     h1,h2,h3,h4,h5,h6 { margin:0; }
     p { margin:8px 0; }
     button { cursor:pointer; }
   `;
+
   frame.srcdoc = `
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<style>${baseStyles}\n${lastCSS}</style>
+<meta charset="UTF-8">
+<title>Zenith Preview</title>
+<style>
+${baseStyles}
+${lastCSS}
+</style>
 </head>
-<body>${lastHTML.match(/<body>([\s\S]*)<\/body>/)[1]}</body>
-</html>`;
-  document.getElementById("preview").style.display="block";
-}
+<body>
+${bodyContent}
+</body>
+</html>
+  `;
 
-function closePreview(){document.getElementById("preview").style.display="none";}
+  document.getElementById("preview").style.display = "block";
+}
 </script>
 
 </body>
