@@ -16,12 +16,26 @@ function compileZenithToHTML(code) {
   const lines = code.split('\n');
   let output = '';
   let warnings = [];
-  let parentStack = [];
+  let stack = [];
+
+  // Determine indentation
+  function getIndent(line) {
+    return line.match(/^(\s*)/)[1].length;
+  }
+
+  let previousIndent = 0;
 
   lines.forEach((line, index) => {
     const lineNum = index + 1;
+    if (!line.trim()) return;
+
+    const indent = getIndent(line);
     line = line.trim();
-    if (!line) return;
+
+    // Pop stack if indentation decreased
+    while (stack.length && indent < stack[stack.length - 1].indent) {
+      stack.pop();
+    }
 
     if (line.startsWith('/')) {
       const [el, ...rest] = line.split(' ');
@@ -35,13 +49,13 @@ function compileZenithToHTML(code) {
         return;
       }
 
-      // Check grammar nesting rules
-      const parent = parentStack[parentStack.length - 1];
+      // Check grammar nesting
+      const parent = stack.length ? stack[stack.length - 1].name : null;
       if (parent && grammar.nesting_rules[parent] && !grammar.nesting_rules[parent].includes(name)) {
         warnings.push(`Line ${lineNum}: '${name}' should not be inside '${parent}'`);
       }
 
-      // Add element to output
+      // Generate HTML
       const tag = def.tag || 'div';
       const style = def.style ? ` style="${def.style}"` : '';
 
@@ -53,17 +67,17 @@ function compileZenithToHTML(code) {
         output += `<${tag}${style}>${content}</${tag}>\n`;
       }
 
-      // Push container elements to parent stack
+      // Push containers onto stack for nested checking
       if (def.type === 'layout' || def.type === 'section' || def.type === 'component') {
-        parentStack.push(name);
+        stack.push({ name, indent });
       }
 
     } else {
+      // Plain text
       output += `<p>${line}</p>\n`;
     }
 
-    // Pop from stack if indentation decreases (optional: advanced)
-    // For now, just keep it simple
+    previousIndent = indent;
   });
 
   if (warnings.length) {
