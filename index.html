@@ -4,62 +4,61 @@
 <meta charset="UTF-8">
 <title>Zenith Playground</title>
 <style>
+/* Hacky hacker neon vibe */
 body {
   font-family: 'Fira Code', monospace;
-  background: #1e1e2f;
-  color: #f5f5f5;
+  background: #0f0f0f;
+  color: #00ff99;
   padding: 30px;
 }
-h1 { margin-bottom: 20px; color:#00ffd5; font-size:2rem; }
+h1 { color:#ff00ff; margin-bottom:15px; }
 textarea {
   width:100%;
   height:25vh;
-  font-family: 'Fira Code', monospace;
+  font-family:'Fira Code', monospace;
   font-size:16px;
-  padding:12px;
-  border-radius:8px;
-  border:1px solid #333;
-  margin-bottom:10px;
-  background:#282a36;
-  color:#f8f8f2;
+  background:#111;
+  color:#00ff99;
+  border:1px solid #00ff99;
+  border-radius:6px;
+  padding:10px;
   resize: vertical;
 }
 button {
   padding:10px 20px;
-  border-radius:8px;
   border:none;
-  background:#6272a4;
-  color:white;
+  border-radius:6px;
+  background:#ff00ff;
+  color:#0f0f0f;
   cursor:pointer;
+  margin-right:10px;
   margin-bottom:10px;
-  transition:0.2s;
+  font-weight:bold;
 }
-button:hover { background:#50fa7b; color:#111; }
+button:hover { background:#00ff99; color:#111; }
 pre {
   width:100%;
   min-height:20vh;
-  background:#282a36;
-  border:1px solid #44475a;
-  border-radius:8px;
-  padding:12px;
-  box-sizing:border-box;
+  background:#111;
+  border:1px solid #00ff99;
+  border-radius:6px;
+  padding:10px;
   overflow:auto;
   white-space:pre-wrap;
-  font-family: 'Fira Code', monospace;
-  font-size:15px;
-  color:#f8f8f2;
+  font-family:'Fira Code', monospace;
+  color:#00ff99;
   margin-bottom:20px;
 }
-#divider { text-align:center; font-weight:bold; margin:10px 0; color:#6272a4; }
-label { font-weight:bold; display:block; margin-top:15px; margin-bottom:5px; color:#50fa7b; }
-#warnings { color:#ff5555; font-family: 'Fira Code', monospace; margin-top:10px; }
+#divider { text-align:center; margin:15px 0; color:#ff00ff; font-weight:bold; }
+#warnings { color:#ff5555; font-family:'Fira Code', monospace; margin-top:10px; }
 
+/* Preview Modal */
 #previewModal {
   display:none;
   position:fixed;
   top:0; left:0;
   width:100%; height:100%;
-  background:rgba(0,0,0,0.8);
+  background:rgba(0,0,0,0.95);
   z-index:9999;
   align-items:center;
   justify-content:center;
@@ -80,22 +79,22 @@ label { font-weight:bold; display:block; margin-top:15px; margin-bottom:5px; col
   position:absolute;
   top:10px;
   right:10px;
-  background:#6272a4;
-  color:white;
+  background:#ff00ff;
+  color:#111;
   border:none;
   border-radius:5px;
   padding:8px 12px;
   cursor:pointer;
   z-index:10;
 }
-#closePreview:hover { background:#50fa7b; color:#111; }
+#closePreview:hover { background:#00ff99; color:#111; }
 </style>
 </head>
 <body>
 
 <h1>Zenith Playground</h1>
 
-<label for="zenithInput">Type your Zenith code:</label>
+<label for="zenithInput">Zenith Code:</label>
 <textarea id="zenithInput" placeholder='Type here...'></textarea>
 
 <button id="compileBtn">Compile</button>
@@ -141,41 +140,56 @@ const dictionary = {
   "section": {tag:"section", type:"section"}
 };
 
+// Compiler now separates HTML & CSS properly
 function compileZenith(code){
   const lines = code.split("\n");
   let htmlLang="en", pageTitle="Zenith Page";
   let cssLines=[];
   let warnings=[];
 
-  function parse(i=0, parentIndent=0){
+  function parse(i=0,parentIndent=0){
     let bodyLines=[];
     while(i<lines.length){
       let line=lines[i];
-      if(!line.trim()){i++; continue;}
-      let indent = line.match(/^(\s*)/)[1].length;
+      if(!line.trim()){ i++; continue; }
+      let indent=line.match(/^(\s*)/)[1].length;
       if(indent<parentIndent) break;
       line=line.trim();
       if(line.startsWith("/")){
         const [el,...rest]=line.split(" ");
-        const name = el.slice(1);
-        let contentRaw = rest.join(" ");
-        let def = dictionary[name];
-        if(!def){warnings.push(`Line ${i+1}: Unknown element '${name}'`); bodyLines.push(`<!-- Unknown element: ${name} -->`); i++; continue;}
+        const name=el.slice(1);
+        let contentRaw=rest.join(" ");
+        let def=dictionary[name];
+        if(!def){ warnings.push(`Line ${i+1}: Unknown element '${name}'`); bodyLines.push(`<!-- Unknown element: ${name} -->`); i++; continue; }
+
         if(def.type==="meta"){
           if(name==="zenith"){ const langMatch=rest.find(r=>/^[a-z]{2}$/i.test(r)); if(langMatch) htmlLang=langMatch.toLowerCase(); i++; continue;}
           if(name==="page"){ pageTitle=contentRaw.replace(/^["“”]|["“”]$/g,''); i++; continue;}
         }
-        const tag = def.tag || 'div';
-        let textContent = contentRaw.replace(/^"|"$/g,'');
+
+        const tag=def.tag||'div';
+        let textContent=contentRaw.replace(/^"|"$/g,'');
         let children="";
         if(def.type==="layout"||def.type==="section"||def.type==="component"){
-          const childResult = parse(i+1, indent+1);
+          const childResult=parse(i+1,indent+1);
           children=childResult.bodyLines.join("\n");
           i=childResult.next-1;
         }
         if(tag==="img") bodyLines.push(`<img src="${textContent}" alt="">`);
         else bodyLines.push(`<${tag}>${textContent}${children?'\n'+children+'\n':''}</${tag}>`);
-        if(def.style && !cssLines.includes(def.style)){cssLines.push(`/* ${tag} default styles */\n${tag} { ${def.style}; }`);}
+        // Inline style goes only to CSS
+        let styleParts=contentRaw.match(/"[^"]*"\s*(.*)/);
+        if(styleParts && styleParts[1].trim()!==""){
+          let styleStr=styleParts[1].trim().split(":");
+          let cssRules=[];
+          if(styleStr[0]) cssRules.push(`font-family:${styleStr[0]}`);
+          if(styleStr[1]) cssRules.push(`font-weight:${styleStr[1]}`);
+          if(styleStr[2]) cssRules.push(`color:${styleStr[2]}`);
+          if(styleStr[3]){ let a=styleStr[3].toLowerCase(); if(a==="centre") a="center"; cssRules.push(`text-align:${a}`);}
+          if(cssRules.length>0) cssLines.push(`${tag}:not([class]) { ${cssRules.join("; ")}; }`);
+        }
+        if(def.style) cssLines.push(`${tag} { ${def.style}; }`);
+
       } else {
         bodyLines.push(`<p>${line}</p>`);
       }
@@ -185,10 +199,11 @@ function compileZenith(code){
   }
 
   const bodyResult=parse(0);
-  const finalHTML = `<!DOCTYPE html>\n<html lang="${htmlLang}">\n<head>\n<meta charset="UTF-8">\n<title>${pageTitle}</title>\n</head>\n<body>\n${bodyResult.bodyLines.join("\n")}\n</body>\n</html>`;
+  const finalHTML=`<!DOCTYPE html>\n<html lang="${htmlLang}">\n<head>\n<meta charset="UTF-8">\n<title>${pageTitle}</title>\n</head>\n<body>\n${bodyResult.bodyLines.join("\n")}\n</body>\n</html>`;
   return {html:finalHTML, css:cssLines.join("\n"), warnings};
 }
 
+// DOM
 window.addEventListener("DOMContentLoaded",()=>{
   const input=document.getElementById("zenithInput");
   const htmlOut=document.getElementById("htmlOutput");
@@ -205,13 +220,13 @@ window.addEventListener("DOMContentLoaded",()=>{
   compileBtn.addEventListener("click",()=>{
     const {html, css, warnings}=compileZenith(input.value);
     htmlOut.textContent=html; // clean HTML
-    cssOut.textContent=css;   // CSS
+    cssOut.textContent=css;   // CSS only
     warningsDiv.textContent=warnings.length?warnings.join("\n"):"";
     lastCompiled={html, css};
   });
 
   previewBtn.addEventListener("click",()=>{
-    if(!lastCompiled.html){ warningsDiv.textContent="Compile first!"; return;}
+    if(!lastCompiled.html){ warningsDiv.textContent="Compile first!"; return; }
     const iframeContent=`<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -227,7 +242,7 @@ ${lastCompiled.html.replace(/^<!DOCTYPE html>\n<html[^>]*>\n<head>.*<\/head>\n<b
     previewModal.style.display="flex";
   });
 
-  closePreview.addEventListener("click",()=>{previewModal.style.display="none";});
+  closePreview.addEventListener("click",()=>{ previewModal.style.display="none"; });
 });
 </script>
 
