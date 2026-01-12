@@ -4,153 +4,138 @@
 <meta charset="UTF-8">
 <title>Zenith Simple Code</title>
 <style>
-  body { font-family: sans-serif; padding: 40px; background: #fdfdfd; }
-  h1 { font-size: 2rem; margin-bottom: 20px; }
-  textarea { width: 100%; height: 30vh; font-family: monospace; font-size: 16px; padding: 12px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 8px; resize: vertical; margin-bottom: 20px; }
-  pre { width: 100%; height: 25vh; background: #f5f5f5; border: 1px solid #ccc; border-radius: 8px; padding: 12px; box-sizing: border-box; overflow: auto; white-space: pre-wrap; font-family: monospace; font-size: 16px; }
-  #divider { height: 20px; text-align: center; font-weight: bold; margin: 10px 0; }
-  #warnings { color: red; margin-top: 10px; font-family: monospace; }
+body { font-family: sans-serif; padding: 40px; background: #fdfdfd; }
+textarea { width:100%; height:30vh; font-family: monospace; font-size:16px; padding:12px; border-radius:8px; border:1px solid #ccc; margin-bottom:20px; box-sizing:border-box; }
+pre { width:100%; height:25vh; background:#f5f5f5; border:1px solid #ccc; border-radius:8px; padding:12px; box-sizing:border-box; overflow:auto; white-space:pre-wrap; font-family: monospace; font-size:16px; }
+#divider { text-align:center; font-weight:bold; margin:10px 0; }
+#warnings { color:red; font-family: monospace; margin-top:10px; }
+h1 { margin-bottom:20px; }
 </style>
 </head>
 <body>
 
 <h1>Zenith Simple Code</h1>
-
 <textarea id="zenithInput" placeholder="Type your Zenith code here..."></textarea>
-
 <pre id="htmlOutput"></pre>
-
 <div id="divider">----- CSS -----</div>
-
 <pre id="cssOutput"></pre>
-
 <div id="warnings"></div>
 
 <script>
 // --- Dictionary ---
 const dictionary = {
-  "zenith": { "type": "meta" }, // now generates doctype
-  "lang": { "type": "meta" },   // sets html lang
-  "page": { "type": "meta" },   // sets title
-
-  "header": { "tag": "header", "type": "section" },
-  "hero": { "tag": "section", "type": "section" },
-  "main": { "tag": "main", "type": "section" },
-  "footer": { "tag": "footer", "type": "section" },
-  "stack": { "tag": "div", "type": "layout", "style": "display:flex;flex-direction:column;gap:40px" },
-  "grid": { "tag": "div", "type": "layout", "style": "display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:32px" },
-  "column": { "tag": "div", "type": "layout", "style": "display:flex;flex-direction:column;gap:16px" },
-  "actions": { "tag": "div", "type": "layout", "style": "display:flex;gap:16px;flex-wrap:wrap" },
-  "title": { "tag": "h1", "type": "text" },
-  "subtitle": { "tag": "h2", "type": "text" },
-  "text": { "tag": "p", "type": "text" },
-  "step": { "tag": "p", "type": "text", "style": "font-weight:500" },
-  "button": { "tag": "button", "type": "interactive", "style": "padding:14px 28px;border-radius:999px;border:none;cursor:pointer" },
-  "link": { "tag": "a", "type": "interactive" },
-  "image": { "tag": "img", "type": "media" },
-  "card": { "tag": "div", "type": "component", "style": "padding:32px;border-radius:16px;background:white;box-shadow:0 20px 40px rgba(0,0,0,0.06)" },
-  "section": { "tag": "section", "type": "section" }
-};
-
-// --- Grammar ---
-const grammar = {
-  "nesting_rules": {
-    "section": ["stack","grid","title","text","button","card","hero","main","header","footer"],
-    "stack": ["title","text","button","stack","grid","card","actions"],
-    "grid": ["column","card","stack","text","title","image"],
-    "column": ["stack","text","button","title"],
-    "card": ["title","text","button","image"]
-  }
+  "zenith": {type:"meta"},
+  "lang": {type:"meta"},
+  "page": {type:"meta"},
+  "header": {tag:"header",type:"section"},
+  "hero": {tag:"section",type:"section"},
+  "main": {tag:"main",type:"section"},
+  "footer": {tag:"footer",type:"section"},
+  "stack": {tag:"div",type:"layout",style:"display:flex;flex-direction:column;gap:40px"},
+  "grid": {tag:"div",type:"layout",style:"display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:32px"},
+  "column": {tag:"div",type:"layout",style:"display:flex;flex-direction:column;gap:16px"},
+  "actions": {tag:"div",type:"layout",style:"display:flex;gap:16px;flex-wrap:wrap"},
+  "title": {tag:"h1",type:"text"},
+  "subtitle": {tag:"h2",type:"text"},
+  "text": {tag:"p",type:"text"},
+  "step": {tag:"p",type:"text",style:"font-weight:500"},
+  "button": {tag:"button",type:"interactive",style:"padding:14px 28px;border-radius:999px;border:none;cursor:pointer"},
+  "link": {tag:"a",type:"interactive"},
+  "image": {tag:"img",type:"media"},
+  "card": {tag:"div",type:"component",style:"padding:32px;border-radius:16px;background:white;box-shadow:0 20px 40px rgba(0,0,0,0.06)"},
+  "section": {tag:"section",type:"section"}
 };
 
 // --- Compiler ---
-function compileZenithToHTMLandCSS(code){
-  const lines = code.split('\n');
-  let html = '';
-  let css = '';
+function compileZenith(code){
+  const lines = code.split("\n");
+  let htmlLines = [];
+  let cssLines = [];
   let warnings = [];
-  const generatedClasses = new Set();
-  let htmlLang = 'en';
-  let pageTitle = 'Zenith Page';
+  let generatedClasses = new Set();
+  let htmlLang = "en";
+  let pageTitle = "Zenith Page";
 
-  function parseLines(startIndex,parentIndent=0){
-    let localHtml = '';
-    let i = startIndex;
-
+  function parse(i=0, parentIndent=0){
+    let result = [];
     while(i<lines.length){
       let line = lines[i];
       if(!line.trim()){ i++; continue; }
-      const indent = line.match(/^(\s*)/)[1].length;
+      let indent = line.match(/^(\s*)/)[1].length;
       if(indent<parentIndent) break;
 
       line = line.trim();
-      if(line.startsWith('/')){
-        const [el,...rest] = line.split(' ');
+      if(line.startsWith("/")){
+        const [el,...rest]=line.split(" ");
         const name = el.slice(1);
-        let content = rest.join(' ').replace(/^["“”]|["“”]$/g,'');
+        let content = rest.join(" ").replace(/^["“”]|["“”]$/g,'');
         const def = dictionary[name];
-
         if(!def){
           warnings.push(`Line ${i+1}: Unknown element '${name}'`);
-          localHtml += `<!-- Unknown element: ${name} -->\n`;
+          result.push(`<!-- Unknown element: ${name} -->`);
           i++; continue;
         }
 
-        // --- meta ---
-        if(def.type==='meta'){
-          if(name==='zenith') localHtml += '<!DOCTYPE html>\n';
-          else if(name==='lang') htmlLang = content || 'en';
-          else if(name==='page') pageTitle = content;
+        if(def.type==="meta"){
+          if(name==="zenith") result.push("<!DOCTYPE html>");
+          else if(name==="lang") htmlLang = content||"en";
+          else if(name==="page") pageTitle = content;
           i++; continue;
         }
 
-        const tag = def.tag||'div';
-        const classAttr = (def.type==='layout'||def.type==='component')?` class="${name}"`:'';
-        let childrenHtml='';
-
-        if(def.type==='layout'||def.type==='section'||def.type==='component'){
-          const result = parseLines(i+1,indent+1);
-          childrenHtml = result.html;
-          i = result.nextIndex-1;
+        const tag = def.tag || "div";
+        const classAttr = (def.type==="layout"||def.type==="component")?` class="${name}"`:"";
+        let children = "";
+        if(def.type==="layout"||def.type==="section"||def.type==="component"){
+          let childResult = parse(i+1, indent+1);
+          children = childResult.lines.join("\n");
+          i = childResult.next-1;
         }
-
-        if(tag==='img') localHtml+=`<img src="${content}" alt="" />\n`;
-        else localHtml+=`<${tag}${classAttr}>${content}${childrenHtml}</${tag}>\n`;
+        if(tag==="img") result.push(`<img src="${content}" alt="" />`);
+        else result.push(`<${tag}${classAttr}>${content}${children?'\n'+children+'\n':''}</${tag}>`);
 
         if(def.style && !generatedClasses.has(name)){
-          if(classAttr) css+=`.${name} { ${def.style} }\n`;
-          else css+=`${tag} { ${def.style} }\n`;
+          if(classAttr) cssLines.push(`.${name} { ${def.style} }`);
+          else cssLines.push(`${tag} { ${def.style} }`);
           generatedClasses.add(name);
         }
 
-      } else {
-        localHtml+=`<p>${line}</p>\n`;
+      }else{
+        result.push(`<p>${line}</p>`);
       }
       i++;
     }
-    return {html:localHtml,nextIndex:i};
+    return {lines:result,next:i};
   }
 
-  const bodyResult = parseLines(0);
-  html = `<!DOCTYPE html>\n<html lang="${htmlLang}">\n<head>\n<meta charset="UTF-8">\n<title>${pageTitle}</title>\n</head>\n<body>\n${bodyResult.html}</body>\n</html>`;
-  return {html,css,warnings};
+  let body = parse(0);
+  htmlLines.push("<html lang=\""+htmlLang+"\">");
+  htmlLines.push("<head>");
+  htmlLines.push('<meta charset="UTF-8">');
+  htmlLines.push(`<title>${pageTitle}</title>`);
+  htmlLines.push("</head>");
+  htmlLines.push("<body>");
+  htmlLines.push(...body.lines);
+  htmlLines.push("</body>");
+  htmlLines.push("</html>");
+
+  return {html: htmlLines.join("\n"), css: cssLines.join("\n"), warnings};
 }
 
 // --- DOM ---
-window.addEventListener('DOMContentLoaded',()=>{
-  const input=document.getElementById('zenithInput');
-  const htmlOut=document.getElementById('htmlOutput');
-  const cssOut=document.getElementById('cssOutput');
-  const warningsDiv=document.getElementById('warnings');
+window.addEventListener("DOMContentLoaded",()=>{
+  const input=document.getElementById("zenithInput");
+  const htmlOut=document.getElementById("htmlOutput");
+  const cssOut=document.getElementById("cssOutput");
+  const warningsDiv=document.getElementById("warnings");
 
-  input.addEventListener('input',()=>{
-    const {html,css,warnings}=compileZenithToHTMLandCSS(input.value);
+  input.addEventListener("input",()=>{
+    const {html,css,warnings}=compileZenith(input.value);
     htmlOut.textContent = html;
     cssOut.textContent = css;
-    warningsDiv.textContent = warnings.length?warnings.join('\n'):'';
+    warningsDiv.textContent = warnings.length?warnings.join("\n"):"";
   });
 });
 </script>
-
 </body>
 </html>
