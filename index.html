@@ -43,6 +43,9 @@
 <script>
 // --- Embedded dictionary ---
 const dictionary = {
+  "zenith": { "tag": "meta", "type": "meta" },
+  "lang": { "tag": "meta", "type": "meta" },
+  "page": { "tag": "meta", "type": "meta" },
   "stack": { "tag": "div", "type": "layout", "style": "display:flex;flex-direction:column;gap:40px" },
   "grid": { "tag": "div", "type": "layout", "style": "display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:32px" },
   "column": { "tag": "div", "type": "layout", "style": "display:flex;flex-direction:column;gap:16px" },
@@ -101,10 +104,10 @@ function compileZenithToHTMLandCSS(code) {
           i++; continue;
         }
 
-        // Check grammar
-        const parent = null; // optional: could track parent for warnings
-        if (parent && grammar.nesting_rules[parent] && !grammar.nesting_rules[parent].includes(name)) {
-          warnings.push(`Line ${i+1}: '${name}' should not be inside '${parent}'`);
+        // If meta, output as comment only
+        if (def.type === "meta") {
+          localHtml += `<!-- ${name} ${content} -->\n`;
+          i++; continue;
         }
 
         const tag = def.tag || 'div';
