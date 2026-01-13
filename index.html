@@ -6,18 +6,32 @@
 
 <script>
 const c = document.getElementById("c");
-const x = c.getContext("2d");
+const ctx = c.getContext("2d");
 c.width = innerWidth;
 c.height = innerHeight;
 
-let pos = 100;
-let speed = 2;   // ← change this
+const Z = `
+box x 100 y 200
+size 50
+color cyan
+speed 3
+`;
+
+const box = { x:0,y:0,size:40,color:"#fff",speed:1 };
+
+Z.trim().split("\n").forEach(line=>{
+  const p=line.split(" ");
+  if(p[0]==="box"){ box.x=+p[2]; box.y=+p[4]; }
+  if(p[0]==="size") box.size=+p[1];
+  if(p[0]==="color") box.color=p[1];
+  if(p[0]==="speed") box.speed=+p[1];
+});
 
 function loop(){
-  x.clearRect(0,0,c.width,c.height);
-  x.fillStyle = "#0ff";
-  x.fillRect(pos,200,50,50);
-  pos += speed;
+  ctx.clearRect(0,0,c.width,c.height);
+  box.x += box.speed;
+  ctx.fillStyle = box.color;
+  ctx.fillRect(box.x,box.y,box.size,box.size);
   requestAnimationFrame(loop);
 }
 loop();
